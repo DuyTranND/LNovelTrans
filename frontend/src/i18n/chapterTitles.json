@@ -1,0 +1,629 @@
+{
+  "각성 (1)": {
+    "vi": "Thức tỉnh (1)",
+    "en": "Awakening (1)"
+  },
+  "각성 (2)": {
+    "vi": "Thức tỉnh (2)",
+    "en": "Awakening (2)"
+  },
+  "상점 오픈 (1)": {
+    "vi": "Khai trương cửa hàng (1)",
+    "en": "Store Opening (1)"
+  },
+  "상점 오픈 (2)": {
+    "vi": "Khai trương cửa hàng (2)",
+    "en": "Store Opening (2)"
+  },
+  "회원 초대 (1)": {
+    "vi": "Mời thành viên (1)",
+    "en": "Member Invitation (1)"
+  },
+  "회원 초대 (2)": {
+    "vi": "Mời thành viên (2)",
+    "en": "Member Invitation (2)"
+  },
+  "오픈런 (1)": {
+    "vi": "Xếp hàng từ giờ mở cửa (1)",
+    "en": "Queuing at Opening (1)"
+  },
+  "오픈런 (2)": {
+    "vi": "Xếp hàng từ giờ mở cửa (2)",
+    "en": "Queuing at Opening (2)"
+  },
+  "후폭풍": {
+    "vi": "Dư chấn",
+    "en": "Aftermath"
+  },
+  "영업 방해 (1)": {
+    "vi": "Phá hoại kinh doanh (1)",
+    "en": "Business Interference (1)"
+  },
+  "영업 방해 (2)": {
+    "vi": "Phá hoại kinh doanh (2)",
+    "en": "Business Interference (2)"
+  },
+  "영업 방해 (3)": {
+    "vi": "Phá hoại kinh doanh (3)",
+    "en": "Business Interference (3)"
+  },
+  "영업 방해 (4)": {
+    "vi": "Phá hoại kinh doanh (4)",
+    "en": "Business Interference (4)"
+  },
+  "시스템과 주딱": {
+    "vi": "Hệ thống và Trưởng quản",
+    "en": "The System and the Head Mod"
+  },
+  "스타플렉스 휴먼 다큐 1화": {
+    "vi": "Phim tài liệu con người Starplex Tập 1",
+    "en": "Starplex Human Documentary Episode 1"
+  },
+  "식품 대란 (1)": {
+    "vi": "Đại nạn lương thực (1)",
+    "en": "Food Crisis (1)"
+  },
+  "식품 대란 (2)": {
+    "vi": "Đại nạn lương thực (2)",
+    "en": "Food Crisis (2)"
+  },
+  "식품 대란 (3)": {
+    "vi": "Đại nạn lương thực (3)",
+    "en": "Food Crisis (3)"
+  },
+  "식품 대란 (4)": {
+    "vi": "Đại nạn lương thực (4)",
+    "en": "Food Crisis (4)"
+  },
+  "식품 대란 (5)": {
+    "vi": "Đại nạn lương thực (5)",
+    "en": "Food Crisis (5)"
+  },
+  "폭풍전야 (1)": {
+    "vi": "Trước thềm bão tố (1)",
+    "en": "The Calm Before the Storm (1)"
+  },
+  "폭풍전야 (2)": {
+    "vi": "Trước thềm bão tố (2)",
+    "en": "The Calm Before the Storm (2)"
+  },
+  "트롤리 딜레마 (1)": {
+    "vi": "Song đề xe điện (1)",
+    "en": "Trolley Dilemma (1)"
+  },
+  "트롤리 딜레마 (2)": {
+    "vi": "Song đề xe điện (2)",
+    "en": "Trolley Dilemma (2)"
+  },
+  "데우스 엑스 마키나 (1)": {
+    "vi": "Deus Ex Machina (1)",
+    "en": "Deus Ex Machina (1)"
+  },
+  "데우스 엑스 마키나 (2)": {
+    "vi": "Deus Ex Machina (2)",
+    "en": "Deus Ex Machina (2)"
+  },
+  "스피드런과 시스템": {
+    "vi": "Speedrun và Hệ thống",
+    "en": "Speedrun and the System"
+  },
+  "압도적인 변화 (1)": {
+    "vi": "Thay đổi áp đảo (1)",
+    "en": "Overwhelming Change (1)"
+  },
+  "압도적인 변화 (2)": {
+    "vi": "Thay đổi áp đảo (2)",
+    "en": "Overwhelming Change (2)"
+  },
+  "압도적인 변화 (3)": {
+    "vi": "Thay đổi áp đảo (3)",
+    "en": "Overwhelming Change (3)"
+  },
+  "스타플렉스 휴먼 다큐 2화  (1)": {
+    "vi": "Phim tài liệu con người Starplex Tập 2 (1)",
+    "en": "Starplex Human Documentary Episode 2 (1)"
+  },
+  "스타플렉스 휴먼 다큐 2화 (2)": {
+    "vi": "Phim tài liệu con người Starplex Tập 2 (2)",
+    "en": "Starplex Human Documentary Episode 2 (2)"
+  },
+  "혁신 (1)": {
+    "vi": "Đổi mới (1)",
+    "en": "Innovation (1)"
+  },
+  "혁신 (2)": {
+    "vi": "Đổi mới (2)",
+    "en": "Innovation (2)"
+  },
+  "불가침 구역 (1)": {
+    "vi": "Khu vực bất khả xâm phạm (1)",
+    "en": "Inviolate Zone (1)"
+  },
+  "불가침 구역 (2)": {
+    "vi": "Khu vực bất khả xâm phạm (2)",
+    "en": "Inviolate Zone (2)"
+  },
+  "침공 (1)": {
+    "vi": "Xâm lược (1)",
+    "en": "Invasion (1)"
+  },
+  "침공 (2)": {
+    "vi": "Xâm lược (2)",
+    "en": "Invasion (2)"
+  },
+  "침공 (3)": {
+    "vi": "Xâm lược (3)",
+    "en": "Invasion (3)"
+  },
+  "침공 (4)": {
+    "vi": "Xâm lược (4)",
+    "en": "Invasion (4)"
+  },
+  "침공 (5)": {
+    "vi": "Xâm lược (5)",
+    "en": "Invasion (5)"
+  },
+  "유입 (1)": {
+    "vi": "Dòng người đổ vào (1)",
+    "en": "Inflow (1)"
+  },
+  "유입 (2)": {
+    "vi": "Dòng người đổ vào (2)",
+    "en": "Inflow (2)"
+  },
+  "천하 제일 파딱 대회 (1)": {
+    "vi": "Đại hội Phó quản đệ nhất thiên hạ (1)",
+    "en": "The Greatest Sub-Mod Tournament (1)"
+  },
+  "천하 제일 파딱 대회 (2)": {
+    "vi": "Đại hội Phó quản đệ nhất thiên hạ (2)",
+    "en": "The Greatest Sub-Mod Tournament (2)"
+  },
+  "천하 제일 파딱 대회 (3)": {
+    "vi": "Đại hội Phó quản đệ nhất thiên hạ (3)",
+    "en": "The Greatest Sub-Mod Tournament (3)"
+  },
+  "천하 제일 파딱 대회 (4)": {
+    "vi": "Đại hội Phó quản đệ nhất thiên hạ (4)",
+    "en": "The Greatest Sub-Mod Tournament (4)"
+  },
+  "불만 사항 폭주": {
+    "vi": "Khiếu nại bùng nổ",
+    "en": "Complaint Explosion"
+  },
+  "스타플렉스 휴먼 다큐 3화": {
+    "vi": "Phim tài liệu con người Starplex Tập 3",
+    "en": "Starplex Human Documentary Episode 3"
+  },
+  "의료 개혁 (1)": {
+    "vi": "Cải cách y tế (1)",
+    "en": "Medical Reform (1)"
+  },
+  "의료 개혁 (2)": {
+    "vi": "Cải cách y tế (2)",
+    "en": "Medical Reform (2)"
+  },
+  "의료 개혁 (3)": {
+    "vi": "Cải cách y tế (3)",
+    "en": "Medical Reform (3)"
+  },
+  "의료 개혁 (4)": {
+    "vi": "Cải cách y tế (4)",
+    "en": "Medical Reform (4)"
+  },
+  "대재앙 (1)": {
+    "vi": "Đại thảm họa (1)",
+    "en": "Cataclysm (1)"
+  },
+  "대재앙 (2)": {
+    "vi": "Đại thảm họa (2)",
+    "en": "Cataclysm (2)"
+  },
+  "대재앙 (3)": {
+    "vi": "Đại thảm họa (3)",
+    "en": "Cataclysm (3)"
+  },
+  "시스템 vs 신스템 1화 (1)": {
+    "vi": "Hệ thống vs Thần thống Tập 1 (1)",
+    "en": "System vs God-stem Episode 1 (1)"
+  },
+  "시스템 VS 신스템 1화 (2)": {
+    "vi": "Hệ thống VS Thần thống Tập 1 (2)",
+    "en": "System VS God-stem Episode 1 (2)"
+  },
+  "시스템 VS 신스템 1화 (3)": {
+    "vi": "Hệ thống VS Thần thống Tập 1 (3)",
+    "en": "System VS God-stem Episode 1 (3)"
+  },
+  "시스템 VS 신스템 1화 (4)": {
+    "vi": "Hệ thống VS Thần thống Tập 1 (4)",
+    "en": "System VS God-stem Episode 1 (4)"
+  },
+  "신스템": {
+    "vi": "Thần thống",
+    "en": "God-stem"
+  },
+  "이시연과 분탕백수": {
+    "vi": "Lee Si-yeon và kẻ gây rối",
+    "en": "Lee Si-yeon and the Troll"
+  },
+  "뉴비 키우기 (1)": {
+    "vi": "Nuôi dưỡng lính mới (1)",
+    "en": "Raising a Newbie (1)"
+  },
+  "뉴비 키우기 (2)": {
+    "vi": "Nuôi dưỡng lính mới (2)",
+    "en": "Raising a Newbie (2)"
+  },
+  "뉴비 키우기 (3)": {
+    "vi": "Nuôi dưỡng lính mới (3)",
+    "en": "Raising a Newbie (3)"
+  },
+  "뉴?비 키우기 (4)": {
+    "vi": "Nuôi dưỡng lính mới? (4)",
+    "en": "Raising a Newbie? (4)"
+  },
+  "뉴?비 키우기 (5)": {
+    "vi": "Nuôi dưỡng lính mới? (5)",
+    "en": "Raising a Newbie? (5)"
+  },
+  "정상화 (1)": {
+    "vi": "Bình thường hóa (1)",
+    "en": "Normalization (1)"
+  },
+  "정상화 (2)": {
+    "vi": "Bình thường hóa (2)",
+    "en": "Normalization (2)"
+  },
+  "축제 기간": {
+    "vi": "Mùa lễ hội",
+    "en": "Festival Period"
+  },
+  "지방 농가 (1)": {
+    "vi": "Trang trại địa phương (1)",
+    "en": "Local Farm (1)"
+  },
+  "지방 농가 (2)": {
+    "vi": "Trang trại địa phương (2)",
+    "en": "Local Farm (2)"
+  },
+  "지방 농가 (3)": {
+    "vi": "Trang trại địa phương (3)",
+    "en": "Local Farm (3)"
+  },
+  "지방 농가 (4)": {
+    "vi": "Trang trại địa phương (4)",
+    "en": "Local Farm (4)"
+  },
+  "혁명의 불씨 (1)": {
+    "vi": "Đốm lửa cách mạng (1)",
+    "en": "Sparks of Revolution (1)"
+  },
+  "혁명의 불씨 (2)": {
+    "vi": "Đốm lửa cách mạng (2)",
+    "en": "Sparks of Revolution (2)"
+  },
+  "혁명의 불씨 (3)": {
+    "vi": "Đốm lửa cách mạng (3)",
+    "en": "Sparks of Revolution (3)"
+  },
+  "반격 (1)": {
+    "vi": "Phản công (1)",
+    "en": "Counterattack (1)"
+  },
+  "반격 (2)": {
+    "vi": "Phản công (2)",
+    "en": "Counterattack (2)"
+  },
+  "반격 (3)": {
+    "vi": "Phản công (3)",
+    "en": "Counterattack (3)"
+  },
+  "반격 (4)": {
+    "vi": "Phản công (4)",
+    "en": "Counterattack (4)"
+  },
+  "반격 (5)": {
+    "vi": "Phản công (5)",
+    "en": "Counterattack (5)"
+  },
+  "남겨진 것": {
+    "vi": "Thứ còn sót lại",
+    "en": "What Was Left Behind"
+  },
+  "스타플렉스 휴먼 다큐 4화 (1)": {
+    "vi": "Phim tài liệu con người Starplex Tập 4 (1)",
+    "en": "Starplex Human Documentary Episode 4 (1)"
+  },
+  "스타플렉스 휴먼 다큐 4화 (2)": {
+    "vi": "Phim tài liệu con người Starplex Tập 4 (2)",
+    "en": "Starplex Human Documentary Episode 4 (2)"
+  },
+  "■■■■■ ■■ ■■ ■■ (3)": {
+    "vi": "Phim tài liệu con người Starplex Tập 4 (3)",
+    "en": "Starplex Human Documentary Episode 4 (3)",
+    "ko": "스타플렉스 휴먼 다큐 4화 (3)"
+  },
+  "■■■■■ ■■ ■■ ■■ (4)": {
+    "vi": "Phim tài liệu con người Starplex Tập 4 (4)",
+    "en": "Starplex Human Documentary Episode 4 (4)",
+    "ko": "스타플렉스 휴먼 다큐 4화 (4)"
+  },
+  "시스템 아포칼립스": {
+    "vi": "Tận thế hệ thống",
+    "en": "System Apocalypse"
+  },
+  "계획 도시 (1)": {
+    "vi": "Thành phố quy hoạch (1)",
+    "en": "Planned City (1)"
+  },
+  "계획 도시 (2)": {
+    "vi": "Thành phố quy hoạch (2)",
+    "en": "Planned City (2)"
+  },
+  "계획 도시 (3)": {
+    "vi": "Thành phố quy hoạch (3)",
+    "en": "Planned City (3)"
+  },
+  "계획 도시 (4)": {
+    "vi": "Thành phố quy hoạch (4)",
+    "en": "Planned City (4)"
+  },
+  "계획 도시 (5)": {
+    "vi": "Thành phố quy hoạch (5)",
+    "en": "Planned City (5)"
+  },
+  "원정대": {
+    "vi": "Đội viễn chinh",
+    "en": "Expedition Team"
+  },
+  "해방자 (1)": {
+    "vi": "Kẻ giải phóng (1)",
+    "en": "Liberator (1)"
+  },
+  "해방자 (2)": {
+    "vi": "Kẻ giải phóng (2)",
+    "en": "Liberator (2)"
+  },
+  "해방자 (3)": {
+    "vi": "Kẻ giải phóng (3)",
+    "en": "Liberator (3)"
+  },
+  "해방자 (4)": {
+    "vi": "Kẻ giải phóng (4)",
+    "en": "Liberator (4)"
+  },
+  "해방자 (5)": {
+    "vi": "Kẻ giải phóng (5)",
+    "en": "Liberator (5)"
+  },
+  "대탈출 (1)": {
+    "vi": "Cuộc đào tẩu lớn (1)",
+    "en": "Great Escape (1)"
+  },
+  "대탈출 (2)": {
+    "vi": "Cuộc đào tẩu lớn (2)",
+    "en": "Great Escape (2)"
+  },
+  "대탈출 (3)": {
+    "vi": "Cuộc đào tẩu lớn (3)",
+    "en": "Great Escape (3)"
+  },
+  "새가족 (1)": {
+    "vi": "Thành viên mới (1)",
+    "en": "New Family (1)"
+  },
+  "새가족 (2)": {
+    "vi": "Thành viên mới (2)",
+    "en": "New Family (2)"
+  },
+  "정규 업데이트 (1)": {
+    "vi": "Cập nhật định kỳ (1)",
+    "en": "Regular Update (1)"
+  },
+  "정규 업데이트 (2)": {
+    "vi": "Cập nhật định kỳ (2)",
+    "en": "Regular Update (2)"
+  },
+  "정규 업데이트 (3)": {
+    "vi": "Cập nhật định kỳ (3)",
+    "en": "Regular Update (3)"
+  },
+  "속죄 (1)": {
+    "vi": "Chuộc tội (1)",
+    "en": "Atonement (1)"
+  },
+  "속죄 (2)": {
+    "vi": "Chuộc tội (2)",
+    "en": "Atonement (2)"
+  },
+  "낙차": {
+    "vi": "Độ dốc",
+    "en": "Drop-off"
+  },
+  "경각 (1)": {
+    "vi": "Cảnh giác (1)",
+    "en": "Vigilance (1)"
+  },
+  "경각 (2)": {
+    "vi": "Cảnh giác (2)",
+    "en": "Vigilance (2)"
+  },
+  "경각 (3)": {
+    "vi": "Cảnh giác (3)",
+    "en": "Vigilance (3)"
+  },
+  "시스템 VS 신스템 2화 (1)": {
+    "vi": "Hệ thống VS Thần thống Tập 2 (1)",
+    "en": "System VS God-stem Episode 2 (1)"
+  },
+  "시스템 VS 신스템 2화 (2)": {
+    "vi": "Hệ thống VS Thần thống Tập 2 (2)",
+    "en": "System VS God-stem Episode 2 (2)"
+  },
+  "시스템 VS 신스템 2화 (3)": {
+    "vi": "Hệ thống VS Thần thống Tập 2 (3)",
+    "en": "System VS God-stem Episode 2 (3)"
+  },
+  "시스템 VS 신스템 2화 (4)": {
+    "vi": "Hệ thống VS Thần thống Tập 2 (4)",
+    "en": "System VS God-stem Episode 2 (4)"
+  },
+  "기억해야 할 것": {
+    "vi": "Điều phải ghi nhớ",
+    "en": "Things to Remember"
+  },
+  "멸망을 이겨내는 법": {
+    "vi": "Cách vượt qua diệt vong",
+    "en": "How to Overcome Destruction"
+  },
+  "아니요 축제입니다 (1)": {
+    "vi": "Không, đây là lễ hội (1)",
+    "en": "No, It's a Festival (1)"
+  },
+  "아니요 축제입니다 (2)": {
+    "vi": "Không, đây là lễ hội (2)",
+    "en": "No, It's a Festival (2)"
+  },
+  "아니요 축제입니다 (3)": {
+    "vi": "Không, đây là lễ hội (3)",
+    "en": "No, It's a Festival (3)"
+  },
+  "가는 말이 고와야 오는 말이 곱다": {
+    "vi": "Nói lời tử tế mới nhận lời tử tế",
+    "en": "Speak Kindly to Be Spoken to Kindly"
+  },
+  "오는 말이 고와야 가는 말도 곱다": {
+    "vi": "Nhận lời tử tế mới đáp lời tử tế",
+    "en": "Be Spoken to Kindly to Speak Kindly Back"
+  },
+  "나아가기": {
+    "vi": "Tiến lên",
+    "en": "Moving Forward"
+  },
+  "2페이즈": {
+    "vi": "Giai đoạn 2",
+    "en": "Phase 2"
+  },
+  "스타플렉스 휴먼 다큐 5화 (1)": {
+    "vi": "Phim tài liệu con người Starplex Tập 5 (1)",
+    "en": "Starplex Human Documentary Episode 5 (1)"
+  },
+  "스타플렉스 휴먼 다큐 5화 (2)": {
+    "vi": "Phim tài liệu con người Starplex Tập 5 (2)",
+    "en": "Starplex Human Documentary Episode 5 (2)"
+  },
+  "스타플렉스 휴먼 다큐 5화 (3)": {
+    "vi": "Phim tài liệu con người Starplex Tập 5 (3)",
+    "en": "Starplex Human Documentary Episode 5 (3)"
+  },
+  "■■■■■ ■■ ■■ ■■ (5)": {
+    "vi": "Phim tài liệu con người Starplex Tập 5 (5)",
+    "en": "Starplex Human Documentary Episode 5 (5)",
+    "ko": "스타플렉스 휴먼 다큐 5화 (5)"
+  },
+  "안녕 (6)": {
+    "vi": "Tạm biệt (6)",
+    "en": "Goodbye (6)"
+  },
+  "스타플렉스 휴먼 다큐 5화 (7)": {
+    "vi": "Phim tài liệu con người Starplex Tập 5 (7)",
+    "en": "Starplex Human Documentary Episode 5 (7)"
+  },
+  "어서와 서울은 처음이지? (1)": {
+    "vi": "Chào mừng, đây là lần đầu đến Seoul phải không? (1)",
+    "en": "Welcome, Is This Your First Time in Seoul? (1)"
+  },
+  "어서와 서울은 처음이지? (2)": {
+    "vi": "Chào mừng, đây là lần đầu đến Seoul phải không? (2)",
+    "en": "Welcome, Is This Your First Time in Seoul? (2)"
+  },
+  "어서와 서울은 처음이지? (3)": {
+    "vi": "Chào mừng, đây là lần đầu đến Seoul phải không? (3)",
+    "en": "Welcome, Is This Your First Time in Seoul? (3)"
+  },
+  "신속 컴퍼니 (1)": {
+    "vi": "Công ty tốc độ (1)",
+    "en": "Speedy Company (1)"
+  },
+  "신속 컴퍼니 (2)": {
+    "vi": "Công ty tốc độ (2)",
+    "en": "Speedy Company (2)"
+  },
+  "신속 컴퍼니 (3)": {
+    "vi": "Công ty tốc độ (3)",
+    "en": "Speedy Company (3)"
+  },
+  "안정화 (1)": {
+    "vi": "Sự ổn định (1)",
+    "en": "Stabilization (1)"
+  },
+  "안정화 (2)": {
+    "vi": "Sự ổn định (2)",
+    "en": "Stabilization (2)"
+  },
+  "화친대": {
+    "vi": "Đài Hòa bình",
+    "en": "Peace Platform"
+  },
+  "김포 (1)": {
+    "vi": "Gimpo (1)",
+    "en": "Gimpo (1)"
+  },
+  "김포 (2)": {
+    "vi": "Gimpo (2)",
+    "en": "Gimpo (2)"
+  },
+  "김포 (3)": {
+    "vi": "Gimpo (3)",
+    "en": "Gimpo (3)"
+  },
+  "김포 (4)": {
+    "vi": "Gimpo (4)",
+    "en": "Gimpo (4)"
+  },
+  "진하린": {
+    "vi": "Jin Ha-rin",
+    "en": "Jin Ha-rin"
+  },
+  "예상치 못한 상황 (1)": {
+    "vi": "Tình huống bất ngờ (1)",
+    "en": "Unexpected Situation (1)"
+  },
+  "예상치 못한 상황 (2)": {
+    "vi": "Tình huống bất ngờ (2)",
+    "en": "Unexpected Situation (2)"
+  },
+  "예상치 못한 상황 (3)": {
+    "vi": "Tình huống bất ngờ (3)",
+    "en": "Unexpected Situation (3)"
+  },
+  "예상치 못한 상황 (4)": {
+    "vi": "Tình huống bất ngờ (4)",
+    "en": "Unexpected Situation (4)"
+  },
+  "예상치 못한 상황 (5)": {
+    "vi": "Tình huống bất ngờ (5)",
+    "en": "Unexpected Situation (5)"
+  },
+  "예상치 못한 상황 (6)": {
+    "vi": "Tình huống bất ngờ (6)",
+    "en": "Unexpected Situation (6)"
+  },
+  "예상치 못한 상황 (7)": {
+    "vi": "Tình huống bất ngờ (7)",
+    "en": "Unexpected Situation (7)"
+  },
+  "융합 (1)": {
+    "vi": "Hợp nhất (1)",
+    "en": "Fusion (1)"
+  },
+  "융합 (2)": {
+    "vi": "Hợp nhất (2)",
+    "en": "Fusion (2)"
+  },
+  "쟁탈전 (1)": {
+    "vi": "Cuộc chiến tranh giành (1)",
+    "en": "Battle for Supremacy (1)"
+  }
+}
