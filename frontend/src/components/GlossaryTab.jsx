@@ -18,6 +18,7 @@ export default function GlossaryTab({
   onUpdateTerm,
   onDeleteTerm,
   isLoading,
+  canEditGlossary = true,
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [editingId, setEditingId] = useState(null);
@@ -40,6 +41,7 @@ export default function GlossaryTab({
   });
 
   const handleStartEdit = (term) => {
+    if (!canEditGlossary) return;
     if (term.locked) {
       setUnlockConfirmId(term.id);
       return;
@@ -55,6 +57,7 @@ export default function GlossaryTab({
   };
 
   const handleConfirmUnlock = async (term) => {
+    if (!canEditGlossary) return;
     try {
       await onUpdateTerm(term.id, { locked: false });
       setUnlockConfirmId(null);
@@ -71,8 +74,9 @@ export default function GlossaryTab({
   };
 
   const handleSaveEdit = async () => {
+    if (!canEditGlossary) return;
     if (!editForm.source.trim() || !editForm.target.trim()) {
-      setActionError('Vui lòng nhập cả từ gốc và bản dịch');
+      setActionError(t('errSourceTargetRequired'));
       return;
     }
     try {
@@ -86,8 +90,9 @@ export default function GlossaryTab({
 
   const handleAddNew = async (e) => {
     e.preventDefault();
+    if (!canEditGlossary) return;
     if (!newTerm.source.trim() || !newTerm.target.trim()) {
-      setActionError('Vui lòng nhập cả từ gốc và bản dịch khi tạo mới');
+      setActionError(t('errSourceTargetRequired'));
       return;
     }
     try {
@@ -115,17 +120,19 @@ export default function GlossaryTab({
           />
         </div>
 
-        <button
-          type="button"
-          className="btn btn-primary"
-          onClick={() => {
-            setIsAdding(!isAdding);
-            setActionError(null);
-          }}
-        >
-          <Plus size={16} />
-          <span>{isAdding ? t('closeForm') : t('addTerm')}</span>
-        </button>
+        {canEditGlossary && (
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => {
+              setIsAdding(!isAdding);
+              setActionError(null);
+            }}
+          >
+            <Plus size={16} />
+            <span>{isAdding ? t('closeForm') : t('addTerm')}</span>
+          </button>
+        )}
       </div>
 
       {actionError && (
@@ -266,11 +273,11 @@ export default function GlossaryTab({
           <table className="glossary-table">
             <thead>
               <tr>
-                <th style={{ width: '25%' }}>{t('colSource')}</th>
-                <th style={{ width: '25%' }}>{t('colTarget')}</th>
-                <th style={{ width: '25%' }}>{t('colNotes')}</th>
-                <th style={{ width: '12%', textAlign: 'center' }}>{t('colStatus')}</th>
-                <th style={{ width: '13%', textAlign: 'right' }}>{t('colAction')}</th>
+                <th style={{ width: canEditGlossary ? '25%' : '30%' }}>{t('colSource')}</th>
+                <th style={{ width: canEditGlossary ? '25%' : '30%' }}>{t('colTarget')}</th>
+                <th style={{ width: canEditGlossary ? '25%' : '25%' }}>{t('colNotes')}</th>
+                <th style={{ width: '15%', textAlign: 'center' }}>{t('colStatus')}</th>
+                {canEditGlossary && <th style={{ width: '13%', textAlign: 'right' }}>{t('colAction')}</th>}
               </tr>
             </thead>
             <tbody>
@@ -344,55 +351,67 @@ export default function GlossaryTab({
                     <td style={{ color: 'var(--color-navy)' }}>{term.target}</td>
                     <td style={{ color: 'var(--color-muted)', fontSize: 13 }}>{term.notes || '—'}</td>
                     <td style={{ textAlign: 'center' }}>
-                      {term.locked ? (
-                        <button
-                          type="button"
-                          className="lock-toggle-btn locked"
-                          onClick={() => handleStartEdit(term)}
-                        >
-                          <Lock size={12} />
-                          <span>{t('locked')}</span>
-                        </button>
+                      {canEditGlossary ? (
+                        term.locked ? (
+                          <button
+                            type="button"
+                            className="lock-toggle-btn locked"
+                            onClick={() => handleStartEdit(term)}
+                          >
+                            <Lock size={12} />
+                            <span>{t('locked')}</span>
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="lock-toggle-btn"
+                            onClick={async () => {
+                              try {
+                                await onUpdateTerm(term.id, { locked: true });
+                              } catch (err) {
+                                setActionError(err.message);
+                              }
+                            }}
+                          >
+                            <Unlock size={12} />
+                            <span>{t('unlocked')}</span>
+                          </button>
+                        )
                       ) : (
-                        <button
-                          type="button"
-                          className="lock-toggle-btn"
-                          onClick={async () => {
-                            try {
-                              await onUpdateTerm(term.id, { locked: true });
-                            } catch (err) {
-                              setActionError(err.message);
-                            }
-                          }}
+                        <span
+                          className={`lock-toggle-btn ${term.locked ? 'locked' : ''}`}
+                          style={{ cursor: 'default' }}
                         >
-                          <Unlock size={12} />
-                          <span>{t('unlocked')}</span>
-                        </button>
+                          {term.locked ? <Lock size={12} /> : <Unlock size={12} />}
+                          <span>{term.locked ? t('locked') : t('unlocked')}</span>
+                        </span>
                       )}
                     </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'inline-flex', gap: 4 }}>
-                        <button
-                          type="button"
-                          className="btn btn-sm"
-                          onClick={() => handleStartEdit(term)}
-                          title={term.locked ? t('termLockedConfirm') : t('edit')}
-                        >
-                          {t('edit')}
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-danger"
-                          onClick={() => {
-                            if (window.confirm(t('deleteConfirm', { term: term.source }))) {
-                              onDeleteTerm(term.id);
-                            }
-                          }}
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </td>
+                    {canEditGlossary && (
+                      <td style={{ textAlign: 'right' }}>
+                        <div style={{ display: 'inline-flex', gap: 4 }}>
+                          <button
+                            type="button"
+                            className="btn btn-sm"
+                            onClick={() => handleStartEdit(term)}
+                            title={term.locked ? t('termLockedConfirm') : t('edit')}
+                          >
+                            {t('edit')}
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-danger"
+                            onClick={() => {
+                              if (window.confirm(t('deleteConfirm', { term: term.source }))) {
+                                onDeleteTerm(term.id);
+                              }
+                            }}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 );
               })}

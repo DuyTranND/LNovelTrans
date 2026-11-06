@@ -15,7 +15,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 
-export default function PromptPresetsTab({ bookId, book }) {
+export default function PromptPresetsTab({ bookId, book, canEditPresets = true }) {
   const { t, lang } = usePreferences();
   const [presets, setPresets] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
@@ -198,15 +198,17 @@ export default function PromptPresetsTab({ bookId, book }) {
           </div>
         </div>
 
-        <button
-          type="button"
-          className="btn btn-primary"
-          onClick={handleNewPreset}
-          disabled={isLoading || isSaving}
-        >
-          <Plus size={16} />
-          <span>{t('newPresetBtn')}</span>
-        </button>
+        {canEditPresets && (
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={handleNewPreset}
+            disabled={isLoading || isSaving}
+          >
+            <Plus size={16} />
+            <span>{t('newPresetBtn')}</span>
+          </button>
+        )}
       </div>
 
       {/* Notifications */}
@@ -348,7 +350,7 @@ export default function PromptPresetsTab({ bookId, book }) {
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                {!formData.is_default && selectedId !== 'new' && (
+                {canEditPresets && !formData.is_default && selectedId !== 'new' && (
                   <button
                     type="button"
                     className="btn"
@@ -361,7 +363,7 @@ export default function PromptPresetsTab({ bookId, book }) {
                   </button>
                 )}
 
-                {selectedId !== 'new' && presets.length > 1 && (
+                {canEditPresets && selectedId !== 'new' && presets.length > 1 && (
                   <button
                     type="button"
                     className="btn btn-danger"
@@ -374,15 +376,17 @@ export default function PromptPresetsTab({ bookId, book }) {
                   </button>
                 )}
 
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={handleSave}
-                  disabled={isSaving}
-                >
-                  {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                  <span>{t('savePresetBtn')}</span>
-                </button>
+                {canEditPresets && (
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={handleSave}
+                    disabled={isSaving}
+                  >
+                    {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                    <span>{t('savePresetBtn')}</span>
+                  </button>
+                )}
               </div>
             </div>
 

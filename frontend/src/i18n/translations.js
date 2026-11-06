@@ -29,6 +29,7 @@ export const translations = {
     tabGlossary: 'Từ điển',
     tabBible: 'Story Bible',
     tabJobs: 'Công việc',
+    tabHistory: 'Lịch sử sửa',
     bgTranslationUpdated: 'Bản dịch máy mới đã được hoàn thành ở chế độ nền! Vui lòng <strong>Lưu chỉnh sửa</strong> hoặc <strong>Huỷ thay đổi</strong> để tải bản dịch mới nhất.',
 
     // Empty State
@@ -191,6 +192,7 @@ export const translations = {
     errLoadTOC: 'Không thể tải mục lục chương: {err}',
     errLoadBookData: 'Lỗi khi tải dữ liệu sách: {err}',
     errLoadChapter: 'Không thể tải nội dung chương: {err}',
+    errLoadGlossary: 'Lỗi tải từ điển: {err}',
     errChangeModel: 'Không thể đổi mô hình: {err}',
     errUploadBook: 'Lỗi khi tải tệp sách: {err}',
     errExport: 'Không thể xuất tệp EPUB: {err}',
@@ -435,6 +437,43 @@ export const translations = {
     presetSelectLabel: 'Cấu hình Prompt:',
     placeholdersHelpTitle: 'Các biến thay thế khả dụng trong mẫu Prompt:',
     qualityGateBannerTitle: 'Cảnh báo kiểm soát chất lượng dịch (Quality Gate):',
+
+    // Authentication & Roles
+    loginTitle: 'Đăng nhập',
+    username: 'Tên đăng nhập',
+    password: 'Mật khẩu',
+    signIn: 'Đăng nhập',
+    signingIn: 'Đang đăng nhập...',
+    loggedInAs: 'Đã đăng nhập:',
+    logout: 'Đăng xuất',
+    loggingOut: 'Đang đăng xuất...',
+    errLoginFailed: 'Đăng nhập thất bại',
+    errLogoutFailed: 'Đăng xuất thất bại',
+    roleAdmin: 'Quản trị viên',
+    roleEditor: 'Biên tập viên',
+    roleViewer: 'Người xem',
+    unauthorizedAction: 'Bạn không có quyền thực hiện thao tác này.',
+    adminOnly: 'Chỉ dành cho quản trị viên',
+    editorOnly: 'Dành cho biên tập viên và quản trị viên',
+    viewerReadOnly: 'Chế độ chỉ đọc',
+
+    // Chapter Save 409 Conflict
+    conflictTitle: 'Xung đột phiên bản bản dịch (409)',
+    conflictDesc: 'Bản dịch trên máy chủ đã thay đổi trong khi bạn đang chỉnh sửa. Vui lòng đối chiếu và chọn cách xử lý cho từng đoạn xung đột.',
+    conflictNoticeResolved: 'Đã xử lý xung đột nháp. Vui lòng bấm "Lưu bản dịch" để áp dụng lên máy chủ.',
+    conflictServerVersion: 'Bản máy chủ',
+    conflictOwnDraft: 'Bản nháp của bạn',
+    conflictAcceptServer: 'Chấp nhận bản máy chủ',
+    conflictRebaseDraft: 'Giữ bản nháp (Rebase)',
+    conflictAcceptAllServer: 'Chấp nhận tất cả từ máy chủ',
+    conflictRebaseAllDrafts: 'Giữ tất cả bản nháp (Rebase)',
+    conflictResolvedCount: 'Đã chọn xử lý {count}/{total} đoạn xung đột',
+    conflictRequiresExplicitSave: 'Yêu cầu nhấn "Lưu bản dịch" sau khi hoàn tất để ghi nhận lên máy chủ',
+    applyResolution: 'Hoàn tất xử lý xung đột',
+    errConflictOccurred: 'Xảy ra xung đột phiên bản (409). Máy chủ có dữ liệu mới hơn.',
+
+    // Glossary Validation
+    errSourceTargetRequired: 'Vui lòng nhập cả từ gốc và bản dịch',
   },
   en: {
     // Header
@@ -466,6 +505,7 @@ export const translations = {
     tabGlossary: 'Glossary',
     tabBible: 'Story Bible',
     tabJobs: 'Jobs',
+    tabHistory: 'History',
     bgTranslationUpdated: 'New machine translation completed in the background! Please <strong>Save changes</strong> or <strong>Discard changes</strong> to load the latest translation.',
 
     // Empty State
@@ -628,6 +668,7 @@ export const translations = {
     errLoadTOC: 'Cannot load table of contents: {err}',
     errLoadBookData: 'Error loading book data: {err}',
     errLoadChapter: 'Cannot load chapter content: {err}',
+    errLoadGlossary: 'Error loading glossary: {err}',
     errChangeModel: 'Cannot change model: {err}',
     errUploadBook: 'Error uploading book file: {err}',
     errExport: 'Cannot export EPUB: {err}',
@@ -872,5 +913,42 @@ export const translations = {
     presetSelectLabel: 'Prompt Preset:',
     placeholdersHelpTitle: 'Available template placeholders:',
     qualityGateBannerTitle: 'Translation Quality Gate Warnings:',
+
+    // Authentication & Roles
+    loginTitle: 'Sign In',
+    username: 'Username',
+    password: 'Password',
+    signIn: 'Sign In',
+    signingIn: 'Signing in...',
+    loggedInAs: 'Logged in as:',
+    logout: 'Log out',
+    loggingOut: 'Logging out...',
+    errLoginFailed: 'Login failed',
+    errLogoutFailed: 'Logout failed',
+    roleAdmin: 'Administrator',
+    roleEditor: 'Editor',
+    roleViewer: 'Viewer',
+    unauthorizedAction: 'You do not have permission to perform this action.',
+    adminOnly: 'Administrator only',
+    editorOnly: 'Editor and Administrator only',
+    viewerReadOnly: 'Read-only mode',
+
+    // Chapter Save 409 Conflict
+    conflictTitle: 'Translation Version Conflict (409)',
+    conflictDesc: 'The server translation changed while you were editing. Please review and choose how to resolve each conflict.',
+    conflictNoticeResolved: 'Draft conflicts resolved. Please click "Save Translation" to commit changes to the server.',
+    conflictServerVersion: 'Server Version',
+    conflictOwnDraft: 'Your Draft',
+    conflictAcceptServer: 'Accept Server',
+    conflictRebaseDraft: 'Keep Draft (Rebase)',
+    conflictAcceptAllServer: 'Accept All Server',
+    conflictRebaseAllDrafts: 'Keep All Drafts (Rebase)',
+    conflictResolvedCount: 'Selected {count}/{total} conflicts to resolve',
+    conflictRequiresExplicitSave: 'Explicit save required afterward to commit changes to the server',
+    applyResolution: 'Apply Resolution',
+    errConflictOccurred: 'Version conflict occurred (409). Server has newer data.',
+
+    // Glossary Validation
+    errSourceTargetRequired: 'Please enter both source and target terms',
   }
 };

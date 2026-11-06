@@ -31,6 +31,10 @@ export default function Header({
   geminiConfigured,
   keyStatus,
   onToggleMobileRail,
+  canUpload = true,
+  canChangeModel = true,
+  canExportPdf = true,
+  canExportEpub = true,
 }) {
   const fileInputRef = useRef(null);
   const { t, lang, setLang, theme, setTheme, computedTheme } = usePreferences();
@@ -171,7 +175,8 @@ export default function Header({
                   style={{ width: 195, minWidth: 155, maxWidth: 220, height: 34, padding: '0 24px 0 8px', fontSize: 13 }}
                   value={currentModel || ''}
                   onChange={(e) => onModelChange(e.target.value)}
-                  disabled={isUpdatingModel}
+                  disabled={isUpdatingModel || !canChangeModel}
+                  title={!canChangeModel ? t('adminOnly') : ''}
                   aria-label={t('ariaSelectModel')}
                 >
                   {models.map((m) => {
@@ -190,7 +195,7 @@ export default function Header({
           );
         })()}
 
-        {/* Upload Button */}
+        {/* Upload Button (Admin only) */}
         <input
           type="file"
           ref={fileInputRef}
@@ -202,14 +207,14 @@ export default function Header({
           type="button"
           className="btn"
           onClick={() => fileInputRef.current?.click()}
-          disabled={isUploading}
-          title={t('uploadEPUB')}
+          disabled={isUploading || !canUpload}
+          title={!canUpload ? t('adminOnly') : t('uploadEPUB')}
         >
           {isUploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
           <span>{isUploading ? t('uploadingEPUB') : t('uploadEPUB')}</span>
         </button>
 
-        {/* Export EPUB Button */}
+        {/* Export EPUB Button (Universal) */}
         <button
           type="button"
           className="btn"
@@ -221,13 +226,13 @@ export default function Header({
           <span>{isExporting ? t('exportingEPUB') : t('exportEPUB')}</span>
         </button>
 
-        {/* Export PDF Button */}
+        {/* Export PDF Button (Editor and Admin only) */}
         <button
           type="button"
           className="btn btn-primary"
           onClick={onOpenPdfExportModal}
-          disabled={books.length === 0}
-          title={t('exportPDF')}
+          disabled={books.length === 0 || !canExportPdf}
+          title={!canExportPdf ? t('editorOnly') : t('exportPDF')}
         >
           <FileText size={16} />
           <span>{t('exportPDF')}</span>

@@ -12,6 +12,8 @@ export default function StoryBibleTab({
   isAnalyzing,
   isSaving,
   isLoading,
+  canEditStoryBible = true,
+  canAnalyzeStoryBible = true,
 }) {
   const currentContent = draftText !== undefined ? draftText : storyBibleText;
   const [message, setMessage] = useState(null);
@@ -64,8 +66,8 @@ export default function StoryBibleTab({
             type="button"
             className="btn"
             onClick={handleAnalyze}
-            disabled={isAnalyzing || isLoading}
-            title={t('analyzeCh1')}
+            disabled={isAnalyzing || isLoading || !canAnalyzeStoryBible}
+            title={!canAnalyzeStoryBible ? t('adminOnly') : t('analyzeCh1')}
           >
             {isAnalyzing ? (
               <>
@@ -84,7 +86,8 @@ export default function StoryBibleTab({
             type="button"
             className="btn btn-primary"
             onClick={handleSave}
-            disabled={!isDirty || isSaving || isLoading}
+            disabled={!isDirty || isSaving || isLoading || !canEditStoryBible}
+            title={!canEditStoryBible ? t('editorOnly') : t('saveBible')}
           >
             {isSaving ? (
               <>
@@ -124,6 +127,7 @@ export default function StoryBibleTab({
           placeholder={t('biblePlaceholder')}
           value={currentContent}
           onChange={handleChange}
+          readOnly={!canEditStoryBible}
           aria-label={t('bibleTitle')}
         />
       )}

@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import { BookOpen, Upload, Loader2, AlertCircle } from 'lucide-react';
 import { usePreferences } from '../contexts/PreferencesContext';
 
-export default function EmptyState({ onUpload, isUploading, uploadError }) {
+export default function EmptyState({ onUpload, isUploading, uploadError, canUpload = true }) {
   const fileInputRef = useRef(null);
   const { t } = usePreferences();
 
@@ -64,7 +64,8 @@ export default function EmptyState({ onUpload, isUploading, uploadError }) {
           className="btn btn-primary"
           style={{ height: 44, padding: '0 24px', fontSize: 15 }}
           onClick={() => fileInputRef.current?.click()}
-          disabled={isUploading}
+          disabled={isUploading || !canUpload}
+          title={!canUpload ? t('adminOnly') : ''}
         >
           {isUploading ? (
             <>

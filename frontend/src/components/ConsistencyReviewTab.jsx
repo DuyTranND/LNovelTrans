@@ -39,6 +39,8 @@ export default function ConsistencyReviewTab({
   book,
   currentModel = 'gemini-3.5-flash-lite',
   keyConfigured = false,
+  canRunAudit = true,
+  canApplyCorrections = true,
 }) {
   const { t } = usePreferences();
 
@@ -644,9 +646,11 @@ export default function ConsistencyReviewTab({
               type="button"
               className="btn btn-primary"
               onClick={handleStartReview}
-              disabled={hasActiveRun || isStartingReview || (book && book.translated_segments <= 0)}
+              disabled={hasActiveRun || isStartingReview || (book && book.translated_segments <= 0) || !canRunAudit}
               title={
-                book && book.translated_segments <= 0
+                !canRunAudit
+                  ? t('adminOnly')
+                  : book && book.translated_segments <= 0
                   ? t('consistencyNoTranslatedSegments')
                   : t('startConsistencyReview')
               }
@@ -801,7 +805,7 @@ export default function ConsistencyReviewTab({
 
             {/* Run Actions (Cancel / Retry) */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              {['running', 'queued', 'pausing'].includes(selectedRun.status) && (
+              {canRunAudit && ['running', 'queued', 'pausing'].includes(selectedRun.status) && (
                 <button
                   type="button"
                   className="btn"
@@ -818,7 +822,7 @@ export default function ConsistencyReviewTab({
                 </button>
               )}
 
-              {['failed', 'paused', 'cancelled'].includes(selectedRun.status) && (
+              {canRunAudit && ['failed', 'paused', 'cancelled'].includes(selectedRun.status) && (
                 <button
                   type="button"
                   className="btn btn-primary"
@@ -835,7 +839,7 @@ export default function ConsistencyReviewTab({
               )}
 
               {/* Semantic Review Stage Controls (Task C) */}
-              {['completed', 'partial'].includes(selectedRun.status) && (
+              {canRunAudit && ['completed', 'partial'].includes(selectedRun.status) && (
                 <>
                   {selectedRun.progress?.semantic_stage === 'running' ? (
                     <button
@@ -1679,9 +1683,11 @@ export default function ConsistencyReviewTab({
                   className="btn btn-primary"
                   disabled={
                     isApplyingProposals ||
-                    proposals.filter((p) => p.is_selected && p.status !== 'applied').length === 0
+                    proposals.filter((p) => p.is_selected && p.status !== 'applied').length === 0 ||
+                    !canApplyCorrections
                   }
                   onClick={() => setConfirmApplyModalOpen(true)}
+                  title={!canApplyCorrections ? t('adminOnly') : ''}
                 >
                   {isApplyingProposals ? (
                     <>
@@ -1863,8 +1869,8 @@ export default function ConsistencyReviewTab({
                             type="button"
                             className="btn btn-outline"
                             onClick={() => handleRollbackSnapshot(snap.id)}
-                            disabled={rollingBackId === snap.id}
-                            title="Khôi phục lại tất cả phân đoạn trong bản sao lưu này"
+                            disabled={rollingBackId === snap.id || !canApplyCorrections}
+                            title={!canApplyCorrections ? t('adminOnly') : 'Khôi phục lại tất cả phân đoạn trong bản sao lưu này'}
                           >
                             {rollingBackId === snap.id ? (
                               <>

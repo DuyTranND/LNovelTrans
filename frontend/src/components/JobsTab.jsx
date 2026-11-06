@@ -28,6 +28,7 @@ export default function JobsTab({
   presets = [],
   selectedPresetId = '',
   onSelectPresetId,
+  canManageJobs = true,
 }) {
   const { t, lang } = usePreferences();
 
@@ -96,7 +97,7 @@ export default function JobsTab({
                 style={{ padding: '4px 8px', fontSize: 12, minWidth: 150 }}
                 value={selectedPresetId || ''}
                 onChange={(e) => onSelectPresetId && onSelectPresetId(e.target.value)}
-                disabled={hasActiveJob}
+                disabled={hasActiveJob || !canManageJobs}
                 aria-label={t('presetSelectLabel')}
               >
                 {presets.map((p) => (
@@ -112,8 +113,8 @@ export default function JobsTab({
             type="button"
             className="btn btn-primary"
             onClick={onLaunchSelectedChapter}
-            disabled={hasActiveJob || !selectedChapterTitle}
-            title={t('jobTranslateSelected')}
+            disabled={hasActiveJob || !selectedChapterTitle || !canManageJobs}
+            title={!canManageJobs ? t('adminOnly') : t('jobTranslateSelected')}
           >
             <Play size={14} />
             <span>{t('jobTranslateSelected')}</span>
@@ -123,8 +124,8 @@ export default function JobsTab({
             type="button"
             className="btn"
             onClick={onPromptLaunchAll}
-            disabled={hasActiveJob}
-            title={t('jobTranslateAll')}
+            disabled={hasActiveJob || !canManageJobs}
+            title={!canManageJobs ? t('adminOnly') : t('jobTranslateAll')}
           >
             <Layers size={14} />
             <span>{t('jobTranslateAll')}</span>
@@ -361,8 +362,8 @@ export default function JobsTab({
                       type="button"
                       className="btn btn-sm"
                       onClick={() => onPauseJob(job.id)}
-                      disabled={isProcessingThis}
-                      title={t('pauseJob')}
+                      disabled={isProcessingThis || !canManageJobs}
+                      title={!canManageJobs ? t('adminOnly') : t('pauseJob')}
                     >
                       <Pause size={13} />
                       {t('pauseJob')}
@@ -374,8 +375,8 @@ export default function JobsTab({
                       type="button"
                       className="btn btn-sm btn-primary"
                       onClick={() => onResumeJob(job.id)}
-                      disabled={isProcessingThis}
-                      title={t('resumeJob')}
+                      disabled={isProcessingThis || !canManageJobs}
+                      title={!canManageJobs ? t('adminOnly') : t('resumeJob')}
                     >
                       {isProcessingThis ? <Loader2 size={13} className="animate-spin" /> : <Play size={13} />}
                       {t('resumeJob')}
@@ -387,8 +388,8 @@ export default function JobsTab({
                       type="button"
                       className="btn btn-sm btn-primary"
                       onClick={() => onRetryJob(job.id)}
-                      disabled={isProcessingThis}
-                      title={t('jobRetry')}
+                      disabled={isProcessingThis || !canManageJobs}
+                      title={!canManageJobs ? t('adminOnly') : t('jobRetry')}
                     >
                       {isProcessingThis ? <Loader2 size={13} className="animate-spin" /> : <RotateCcw size={13} />}
                       {t('jobRetry')}

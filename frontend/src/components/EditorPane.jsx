@@ -26,8 +26,10 @@ export default function EditorPane({
   isLoading,
   isJobActive = false,
   readOnly = false,
+  canEditChapter = true,
 }) {
   const { t } = usePreferences();
+  const isEditable = canEditChapter && !readOnly;
   
   // 'translation' (Bản dịch tiếng Việt) or 'source' (Bản gốc tiếng Hàn)
   const [viewMode, setViewMode] = useState('translation');
@@ -161,8 +163,8 @@ export default function EditorPane({
               type="button"
               className="btn btn-sm"
               onClick={() => setIsEditMode(true)}
-              disabled={isJobActive}
-              title={t('modeEdit')}
+              disabled={isJobActive || !isEditable}
+              title={!isEditable ? t('viewerReadOnly') : t('modeEdit')}
             >
               <Edit3 size={14} />
               <span>{t('modeEdit')}</span>

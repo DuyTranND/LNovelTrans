@@ -28,6 +28,9 @@ export default function CharacterTab({
   book,
   currentModel = 'gemini-3.5-flash-lite',
   keyConfigured = false,
+  canEditCharacters = true,
+  canStartDiscovery = true,
+  canReviewDiscovery = true,
 }) {
   const { t } = usePreferences();
 
@@ -441,15 +444,17 @@ export default function CharacterTab({
               {t('charactersSubtitle')}
             </p>
           </div>
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={handleOpenAddForm}
-            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-          >
-            <Plus size={16} />
-            {t('addCharacter')}
-          </button>
+          {canEditCharacters && (
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={handleOpenAddForm}
+              style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+            >
+              <Plus size={16} />
+              {t('addCharacter')}
+            </button>
+          )}
         </div>
 
         {/* Search bar */}
@@ -701,28 +706,32 @@ export default function CharacterTab({
                         <Unlock size={12} />
                       </span>
                     )}
-                    <button
-                      type="button"
-                      className="icon-btn"
-                      onClick={() => handleStartEdit(char)}
-                      title={t('edit')}
-                    >
-                      <Edit2 size={14} />
-                    </button>
-                    <button
-                      type="button"
-                      className="icon-btn text-danger"
-                      onClick={() => {
-                        if (char.locked) {
-                          setActionError('Không thể xóa nhân vật đã khóa. Vui lòng mở khóa trước.');
-                        } else {
-                          setDeleteConfirmId(char.id);
-                        }
-                      }}
-                      title={t('delete')}
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    {canEditCharacters && (
+                      <>
+                        <button
+                          type="button"
+                          className="icon-btn"
+                          onClick={() => handleStartEdit(char)}
+                          title={t('edit')}
+                        >
+                          <Edit2 size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          className="icon-btn text-danger"
+                          onClick={() => {
+                            if (char.locked) {
+                              setActionError('Không thể xóa nhân vật đã khóa. Vui lòng mở khóa trước.');
+                            } else {
+                              setDeleteConfirmId(char.id);
+                            }
+                          }}
+                          title={t('delete')}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -799,8 +808,9 @@ export default function CharacterTab({
                 type="button"
                 className="btn"
                 onClick={handleCancelDiscovery}
-                disabled={isCancellingRun}
+                disabled={isCancellingRun || !canStartDiscovery}
                 style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--color-danger)' }}
+                title={!canStartDiscovery ? t('adminOnly') : ''}
               >
                 {isCancellingRun ? <Loader2 size={15} className="spinner" /> : <XCircle size={15} />}
                 {t('cancelDiscovery')}
@@ -810,9 +820,9 @@ export default function CharacterTab({
                 type="button"
                 className="btn btn-primary"
                 onClick={handleStartDiscovery}
-                disabled={isStartingDiscovery || !keyConfigured}
+                disabled={isStartingDiscovery || !keyConfigured || !canStartDiscovery}
                 style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-                title={!keyConfigured ? t('consistencyNoKeyNotice') : ''}
+                title={!canStartDiscovery ? t('adminOnly') : (!keyConfigured ? t('consistencyNoKeyNotice') : '')}
               >
                 {isStartingDiscovery ? <Loader2 size={15} className="spinner" /> : <Sparkles size={15} />}
                 {t('startDiscoveryBtn')}
@@ -1054,7 +1064,7 @@ export default function CharacterTab({
                 </div>
 
                 {/* Actions */}
-                {prop.status === 'pending' && (
+                {prop.status === 'pending' && canReviewDiscovery && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, alignSelf: 'center' }}>
                     <button
                       type="button"

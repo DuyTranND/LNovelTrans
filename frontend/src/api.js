@@ -7,10 +7,21 @@ import { translations } from './i18n/translations.js';
 
 const API_BASE = '/api';
 
+export class ApiError extends Error {
+  constructor(message, { status, detail, conflicts, data } = {}) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.detail = detail;
+    this.conflicts = conflicts;
+    this.data = data;
+  }
+}
+
 let csrfToken = null;
 
 function getT(key) {
-  const lang = document.documentElement.lang || 'vi';
+  const lang = (typeof document !== 'undefined' && document.documentElement?.lang) || 'vi';
   const dict = translations[lang] || translations['vi'];
   return dict[key] || translations['vi'][key] || key;
 }
@@ -45,32 +56,42 @@ async function request(path, options = {}) {
     if (err.name === 'AbortError') {
       throw err; // Let caller distinguish aborts
     }
-    throw new Error(`${getT('errCannotConnect')}: ${err.message}`);
+    throw new ApiError(`${getT('errCannotConnect')}: ${err.message}`, {
+      status: 0,
+      detail: err.message,
+    });
   }
 
   if (!res.ok) {
     let baseError = `${getT('errSystem')} (${res.status})`;
     let serverError = '';
+    let parsedData = null;
     try {
-      const data = await res.json();
-      if (data) {
-        if (typeof data.detail === 'string') {
-          serverError = data.detail;
-        } else if (Array.isArray(data.detail)) {
-          serverError = data.detail.map((d) => d.msg || JSON.stringify(d)).join(', ');
-        } else if (data.detail && typeof data.detail === 'object') {
-          serverError = data.detail.message || JSON.stringify(data.detail);
-        } else if (data.message) {
-          serverError = data.message;
-        } else if (data.error) {
-          serverError = data.error;
+      parsedData = await res.json();
+      if (parsedData) {
+        if (typeof parsedData.detail === 'string') {
+          serverError = parsedData.detail;
+        } else if (Array.isArray(parsedData.detail)) {
+          serverError = parsedData.detail.map((d) => d.msg || JSON.stringify(d)).join(', ');
+        } else if (parsedData.detail && typeof parsedData.detail === 'object') {
+          serverError = parsedData.detail.message || JSON.stringify(parsedData.detail);
+        } else if (parsedData.message) {
+          serverError = parsedData.message;
+        } else if (parsedData.error) {
+          serverError = parsedData.error;
         }
       }
     } catch {
       // Body not JSON
     }
     const errorDetail = serverError ? `${baseError}: ${serverError}` : baseError;
-    throw new Error(errorDetail);
+    const conflicts = parsedData?.conflicts || (parsedData?.detail && typeof parsedData.detail === 'object' ? parsedData.detail.conflicts : null) || null;
+    throw new ApiError(errorDetail, {
+      status: res.status,
+      detail: parsedData ? parsedData.detail : null,
+      conflicts,
+      data: parsedData,
+    });
   }
 
   const contentType = res.headers.get('content-type') || '';
@@ -182,12 +203,17 @@ export async function uploadBook(file, signal) {
   if (!res.ok) {
     let baseError = `${getT('errUploadBook')} (${res.status})`;
     let serverError = '';
+    let parsedData = null;
     try {
-      const data = await res.json();
-      serverError = data.detail || data.message || '';
+      parsedData = await res.json();
+      serverError = parsedData.detail || parsedData.message || '';
     } catch {}
     const errorDetail = serverError ? `${baseError}: ${serverError}` : baseError;
-    throw new Error(errorDetail);
+    throw new ApiError(errorDetail, {
+      status: res.status,
+      detail: parsedData ? parsedData.detail : null,
+      data: parsedData,
+    });
   }
 
   return res.json();
@@ -440,12 +466,17 @@ export async function exportBook(bookId) {
   if (!res.ok) {
     let baseError = `${getT('errExport')} (${res.status})`;
     let serverError = '';
+    let parsedData = null;
     try {
-      const data = await res.json();
-      serverError = data.detail || data.message || '';
+      parsedData = await res.json();
+      serverError = parsedData.detail || parsedData.message || '';
     } catch {}
     const errorDetail = serverError ? `${baseError}: ${serverError}` : baseError;
-    throw new Error(errorDetail);
+    throw new ApiError(errorDetail, {
+      status: res.status,
+      detail: parsedData ? parsedData.detail : null,
+      data: parsedData,
+    });
   }
 
   // Use a native HTTP download; the server supplies the UTF-8 filename.
@@ -489,12 +520,17 @@ export async function exportBookPdf(bookId, { chapter_ids, content = 'translatio
   if (!res.ok) {
     let baseError = `${getT('errExportPdf')} (${res.status})`;
     let serverError = '';
+    let parsedData = null;
     try {
-      const data = await res.json();
-      serverError = data.detail || data.message || '';
+      parsedData = await res.json();
+      serverError = parsedData.detail || parsedData.message || '';
     } catch {}
     const errorDetail = serverError ? `${baseError}: ${serverError}` : baseError;
-    throw new Error(errorDetail);
+    throw new ApiError(errorDetail, {
+      status: res.status,
+      detail: parsedData ? parsedData.detail : null,
+      data: parsedData,
+    });
   }
 
   const blob = await res.blob();

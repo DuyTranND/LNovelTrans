@@ -1,14 +1,19 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import * as api from './api';
 import { usePreferences } from './contexts/PreferencesContext';
+import { getRoleCapabilities } from './utils/permissions';
+import { buildChapterSaveConflicts } from './utils/conflictHelpers';
 
-export function useWorkbench() {
+export function useWorkbench(user) {
   const { t, lang } = usePreferences();
   const tRef = useRef(t);
   useEffect(() => {
     tRef.current = t;
   }, [t]);
   const stableT = useCallback((key, params) => tRef.current(key, params), []);
+
+  const capabilities = useMemo(() => getRoleCapabilities(user?.role), [user?.role]);
+
   // Global & Settings State
   const [settings, setSettings] = useState({
     model: 'gemini-3.5-flash-lite',
@@ -19,6 +24,7 @@ export function useWorkbench() {
   const [models, setModels] = useState([]);
   const [isUpdatingModel, setIsUpdatingModel] = useState(false);
   const [globalError, setGlobalError] = useState(null);
+  const [conflictNotice, setConflictNotice] = useState(null);
 
   // Books State
   const [books, setBooks] = useState([]);
@@ -40,7 +46,11 @@ export function useWorkbench() {
   const [hasNewProgressNotice, setHasNewProgressNotice] = useState(false);
 
   // Tabs State
-  const [activeTab, setActiveTab] = useState('translation'); // 'translation' | 'bible' | 'jobs'
+  const [activeTab, setActiveTab] = useState('translation'); // 'translation' | 'glossary' | 'characters' | 'presets' | 'bible' | 'jobs' | 'consistency'
+
+  // Glossary State
+  const [glossary, setGlossary] = useState([]);
+  const [isLoadingGlossary, setIsLoadingGlossary] = useState(false);
 
   // Story Bible State
   const [storyBibleText, setStoryBibleText] = useState('');
@@ -60,6 +70,7 @@ export function useWorkbench() {
 
   // Modals & Mobile View State
   const [confirmModalConfig, setConfirmModalConfig] = useState({ isOpen: false });
+  const [conflictModalConfig, setConflictModalConfig] = useState({ isOpen: false, conflicts: [], latestChapter: null });
   const [isMobileRailOpen, setIsMobileRailOpen] = useState(false);
 
   // Refs for tracking latest dirty state and selection across async boundaries
@@ -164,6 +175,31 @@ export function useWorkbench() {
   // ---------------------------------------------------------------------------
   // Load Active Book Data
   // ---------------------------------------------------------------------------
+  const loadGlossary = useCallback(async (bookId) => {
+    if (!bookId) {
+      setGlossary([]);
+      return;
+    }
+    setIsLoadingGlossary(true);
+    try {
+      const data = await api.getGlossary(bookId);
+      if (activeBookIdRef.current === bookId) {
+        setGlossary(Array.isArray(data) ? data : []);
+      }
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        setGlobalError(stableT('errLoadGlossary', { err: err.message || stableT('errServer') }));
+      }
+      if (activeBookIdRef.current === bookId) {
+        setGlossary([]);
+      }
+    } finally {
+      if (activeBookIdRef.current === bookId) {
+        setIsLoadingGlossary(false);
+      }
+    }
+  }, [stableT]);
+
   const loadBookData = useCallback(async (bookId) => {
     if (!bookId) return;
 
@@ -176,15 +212,22 @@ export function useWorkbench() {
 
     setIsLoadingBible(true);
     setIsLoadingJobs(true);
+    setIsLoadingGlossary(true);
 
     try {
-      const [chList, bbData, jbList] = await Promise.all([
+      const [chList, bbData, jbList, gloList] = await Promise.all([
         api.getChapters(bookId, signal).catch((err) => {
           if (err.name !== 'AbortError') setGlobalError(stableT('errLoadTOC', { err: err.message }));
           return [];
         }),
         api.getStoryBible(bookId, signal).catch(() => ({ text: '' })),
         api.getJobs(bookId, signal).catch(() => []),
+        api.getGlossary(bookId, signal).catch((err) => {
+          if (err.name !== 'AbortError') {
+            setGlobalError(stableT('errLoadGlossary', { err: err.message || stableT('errServer') }));
+          }
+          return [];
+        }),
       ]);
 
       if (signal.aborted || seq !== bookRequestSeqRef.current || bookId !== activeBookIdRef.current) return;
@@ -193,6 +236,7 @@ export function useWorkbench() {
       setStoryBibleText(bbData.text || '');
       setStoryBibleDraft(null);
       setJobs(jbList);
+      setGlossary(Array.isArray(gloList) ? gloList : []);
 
       if (chList.length > 0) {
         performLoadChapter(chList[0].id);
@@ -210,6 +254,7 @@ export function useWorkbench() {
       if (seq === bookRequestSeqRef.current) {
         setIsLoadingBible(false);
         setIsLoadingJobs(false);
+        setIsLoadingGlossary(false);
       }
     }
   }, []);
@@ -370,6 +415,10 @@ export function useWorkbench() {
   // Model Settings
   // ---------------------------------------------------------------------------
   const handleModelChange = async (newModel) => {
+    if (!capabilities.canChangeModel) {
+      setGlobalError(stableT('unauthorizedAction'));
+      return;
+    }
     setIsUpdatingModel(true);
     try {
       const updated = await api.updateSettings(newModel);
@@ -409,6 +458,10 @@ export function useWorkbench() {
   };
 
   const handleUploadBook = async (file) => {
+    if (!capabilities.canUpload) {
+      setGlobalError(stableT('unauthorizedAction'));
+      return;
+    }
     const doUpload = async () => {
       setIsUploading(true);
       setUploadError(null);
@@ -499,6 +552,10 @@ export function useWorkbench() {
   };
 
   const handleSaveSegments = async () => {
+    if (!capabilities.canEditChapter) {
+      setGlobalError(stableT('unauthorizedAction'));
+      return;
+    }
     if (!currentChapter || !isSegmentDirty) return;
 
     const changedPayload = [];
@@ -535,8 +592,8 @@ export function useWorkbench() {
       const refreshed = await api.getChapter(currentChapter.id);
       setCurrentChapter(refreshed);
       setDraftEdits({});
-      // Since lang might not be up-to-date in closure if we don't have it as ref, let's use document.documentElement.lang directly or pass it
       setLastSavedAt(new Date().toLocaleTimeString(document.documentElement.lang === 'en' ? 'en-US' : 'vi-VN'));
+      setConflictNotice(null);
 
       // Update chapter in rail
       if (activeBookId) {
@@ -544,12 +601,83 @@ export function useWorkbench() {
         if (updatedChapters) setChapters(updatedChapters);
       }
     } catch (err) {
-      // Preserve drafts on error
+      if (err.status === 409 && Array.isArray(err.conflicts) && err.conflicts.length > 0) {
+        try {
+          const latestChapter = await api.getChapter(currentChapter.id);
+          // Verify latest-chapter and active-book identity guards
+          if (
+            activeChapterIdRef.current === currentChapter.id &&
+            activeBookIdRef.current === activeBookId &&
+            latestChapter &&
+            latestChapter.id === currentChapter.id
+          ) {
+            const conflicts = buildChapterSaveConflicts(
+              changedPayload,
+              latestChapter.segments,
+              draftEdits,
+              err.conflicts
+            );
+            // Only open conflict resolution modal if structured revision conflicts exist
+            if (conflicts.length > 0) {
+              setConflictModalConfig({
+                isOpen: true,
+                conflicts,
+                latestChapter,
+              });
+              setGlobalError(stableT('errConflictOccurred'));
+              return;
+            }
+          }
+        } catch {
+          // Fall through to standard error handling
+        }
+      }
+      // Preserve drafts on error (generic 409 or other error)
       setGlobalError(stableT('errSaveTranslation', { err: err.message || stableT('errServer') }));
     } finally {
       setIsSavingSegments(false);
     }
   };
+
+  const handleResolveConflict = ({ updatedDraftEdits, latestChapter }) => {
+    if (latestChapter) {
+      setCurrentChapter(latestChapter);
+    }
+    setDraftEdits(updatedDraftEdits);
+    setConflictModalConfig({ isOpen: false, conflicts: [], latestChapter: null });
+    setGlobalError(null);
+    setConflictNotice(stableT('conflictNoticeResolved'));
+  };
+
+  const handleCancelConflict = () => {
+    setConflictModalConfig({ isOpen: false, conflicts: [], latestChapter: null });
+  };
+
+  const handleRefreshChapterSafe = useCallback(async () => {
+    const curChapterId = activeChapterIdRef.current;
+    const curBookId = activeBookIdRef.current;
+    if (!curChapterId || !curBookId) return;
+
+    try {
+      const [latestChapter, latestChapters] = await Promise.all([
+        api.getChapter(curChapterId),
+        api.getChapters(curBookId).catch(() => null),
+      ]);
+
+      if (
+        activeChapterIdRef.current === curChapterId &&
+        activeBookIdRef.current === curBookId &&
+        latestChapter
+      ) {
+        setCurrentChapter(latestChapter);
+        if (latestChapters) {
+          setChapters(latestChapters);
+        }
+      }
+    } catch (err) {
+      setGlobalError(err.message || stableT('errServer'));
+    }
+  }, [stableT]);
 
   const handleDiscardEdits = () => {
     setConfirmModalConfig({
@@ -574,6 +702,10 @@ export function useWorkbench() {
   };
 
   const handleSaveStoryBible = async (text) => {
+    if (!capabilities.canEditStoryBible) {
+      setGlobalError(stableT('unauthorizedAction'));
+      return;
+    }
     if (!activeBookId) return;
     setIsSavingBible(true);
     try {
@@ -589,6 +721,10 @@ export function useWorkbench() {
   };
 
   const handleAnalyzeStoryBible = async () => {
+    if (!capabilities.canAnalyzeStoryBible) {
+      setGlobalError(stableT('unauthorizedAction'));
+      return;
+    }
     if (!activeBookId) return;
     setIsAnalyzingBible(true);
     try {
@@ -604,11 +740,62 @@ export function useWorkbench() {
     }
   };
 
+  // ---------------------------------------------------------------------------
+  // Glossary Handlers
+  // ---------------------------------------------------------------------------
+  const handleCreateGlossaryTerm = async (term) => {
+    if (!capabilities.canEditGlossary) {
+      setGlobalError(stableT('unauthorizedAction'));
+      return;
+    }
+    if (!activeBookId) return;
+    try {
+      const created = await api.createGlossaryTerm(activeBookId, term);
+      await loadGlossary(activeBookId);
+      return created;
+    } catch (err) {
+      setGlobalError(err.message || stableT('errServer'));
+      throw err;
+    }
+  };
+
+  const handleUpdateGlossaryTerm = async (termId, term) => {
+    if (!capabilities.canEditGlossary) {
+      setGlobalError(stableT('unauthorizedAction'));
+      return;
+    }
+    try {
+      const updated = await api.updateGlossaryTerm(termId, term);
+      await loadGlossary(activeBookIdRef.current);
+      return updated;
+    } catch (err) {
+      setGlobalError(err.message || stableT('errServer'));
+      throw err;
+    }
+  };
+
+  const handleDeleteGlossaryTerm = async (termId) => {
+    if (!capabilities.canEditGlossary) {
+      setGlobalError(stableT('unauthorizedAction'));
+      return;
+    }
+    try {
+      await api.deleteGlossaryTerm(termId);
+      await loadGlossary(activeBookIdRef.current);
+    } catch (err) {
+      setGlobalError(err.message || stableT('errServer'));
+      throw err;
+    }
+  };
 
   // ---------------------------------------------------------------------------
   // Job Launching & Control Handlers
   // ---------------------------------------------------------------------------
   const executeLaunchJob = async (chapterIds) => {
+    if (!capabilities.canManageJobs) {
+      setGlobalError(stableT('unauthorizedAction'));
+      return;
+    }
     try {
       const payload = {
         chapter_ids: chapterIds,
@@ -677,6 +864,10 @@ export function useWorkbench() {
   };
 
   const handlePauseJob = async (jobId) => {
+    if (!capabilities.canManageJobs) {
+      setGlobalError(stableT('unauthorizedAction'));
+      return;
+    }
     setActionJobLoadingId(jobId);
     // Optimistically show 'pausing' until actual paused
     setJobs((prev) => prev.map((j) => (j.id === jobId ? { ...j, status: 'pausing' } : j)));
@@ -693,6 +884,10 @@ export function useWorkbench() {
   };
 
   const handleResumeJob = async (jobId) => {
+    if (!capabilities.canManageJobs) {
+      setGlobalError(stableT('unauthorizedAction'));
+      return;
+    }
     setActionJobLoadingId(jobId);
     try {
       await api.resumeJob(jobId);
@@ -706,6 +901,10 @@ export function useWorkbench() {
   };
 
   const handleRetryJob = async (jobId) => {
+    if (!capabilities.canManageJobs) {
+      setGlobalError(stableT('unauthorizedAction'));
+      return;
+    }
     setActionJobLoadingId(jobId);
     try {
       await api.retryJob(jobId);
@@ -728,6 +927,9 @@ export function useWorkbench() {
   const activeBook = books.find((b) => b.id === activeBookId);
 
   return {
+    // Capabilities
+    capabilities,
+
     // State
     settings,
     keyStatus,
@@ -735,6 +937,8 @@ export function useWorkbench() {
     isUpdatingModel,
     globalError,
     setGlobalError,
+    conflictNotice,
+    setConflictNotice,
     books,
     activeBook,
     activeBookId,
@@ -753,6 +957,8 @@ export function useWorkbench() {
     hasNewProgressNotice,
     activeTab,
     setActiveTab,
+    glossary,
+    isLoadingGlossary,
     storyBibleText,
     storyBibleDraft,
     isLoadingBible,
@@ -768,6 +974,7 @@ export function useWorkbench() {
     isJobActiveForCurrentChapter,
     runningJobForCurrentChapter,
     confirmModalConfig,
+    conflictModalConfig,
     isMobileRailOpen,
     setIsMobileRailOpen,
 
@@ -783,6 +990,13 @@ export function useWorkbench() {
     handleBibleDraftChange,
     handleSaveStoryBible,
     handleAnalyzeStoryBible,
+    handleCreateGlossaryTerm,
+    handleUpdateGlossaryTerm,
+    handleDeleteGlossaryTerm,
+    handleResolveConflict,
+    handleCancelConflict,
+    handleRefreshChapterSafe,
+    loadGlossary,
     handleLaunchSelectedChapterJob,
     handlePromptLaunchAllJobs,
     handlePauseJob,
