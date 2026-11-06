@@ -2867,8 +2867,16 @@ def apply_correction_proposals(
             )
 
             conn.execute(
-                "UPDATE segments SET translation = ? WHERE id = ? AND translation = ?",
-                (item["post_text"], item["segment_id"], item["pre_text"]),
+                """
+                UPDATE segments
+                SET translation = ?,
+                    revision = CASE
+                        WHEN translation IS NOT ? THEN revision + 1
+                        ELSE revision
+                    END
+                WHERE id = ? AND translation = ?
+                """,
+                (item["post_text"], item["post_text"], item["segment_id"], item["pre_text"]),
             )
 
             conn.execute(
@@ -2922,8 +2930,16 @@ def rollback_correction_snapshot(db_path: Path | str, snapshot_id: str) -> dict[
 
         for it in items:
             conn.execute(
-                "UPDATE segments SET translation = ? WHERE id = ?",
-                (it["pre_text"], it["segment_id"]),
+                """
+                UPDATE segments
+                SET translation = ?,
+                    revision = CASE
+                        WHEN translation IS NOT ? THEN revision + 1
+                        ELSE revision
+                    END
+                WHERE id = ?
+                """,
+                (it["pre_text"], it["pre_text"], it["segment_id"]),
             )
             conn.execute(
                 """

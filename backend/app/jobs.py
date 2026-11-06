@@ -725,14 +725,33 @@ class JobWorker:
                                 final_trans = preserve_whitespace(src, translations[sid])
                                 seg_findings = gate_result.findings_by_segment.get(sid)
                                 if seg_findings:
+                                    rdata_str = json.dumps(seg_findings, ensure_ascii=False)
                                     conn.execute(
-                                        "UPDATE segments SET translation = ?, review_data = ? WHERE id = ?",
-                                        (final_trans, json.dumps(seg_findings, ensure_ascii=False), sid),
+                                        """
+                                        UPDATE segments
+                                        SET translation = ?,
+                                            review_data = ?,
+                                            revision = CASE
+                                                WHEN (translation IS NOT ? OR review_data IS NOT ?) THEN revision + 1
+                                                ELSE revision
+                                            END
+                                        WHERE id = ?
+                                        """,
+                                        (final_trans, rdata_str, final_trans, rdata_str, sid),
                                     )
                                 else:
                                     conn.execute(
-                                        "UPDATE segments SET translation = ?, review_data = NULL WHERE id = ?",
-                                        (final_trans, sid),
+                                        """
+                                        UPDATE segments
+                                        SET translation = ?,
+                                            review_data = NULL,
+                                            revision = CASE
+                                                WHEN (translation IS NOT ? OR review_data IS NOT NULL) THEN revision + 1
+                                                ELSE revision
+                                            END
+                                        WHERE id = ?
+                                        """,
+                                        (final_trans, final_trans, sid),
                                     )
 
                             completed_segments_count += len(batch)
@@ -979,9 +998,19 @@ class JobWorker:
                                     if unresolved_qg:
                                         rdata = unresolved_qg + [x for x in rdata if x not in unresolved_qg]
 
+                                    rdata_str = json.dumps(rdata)
                                     conn.execute(
-                                        "UPDATE segments SET translation = ?, review_data = ? WHERE id = ?",
-                                        (new_trans, json.dumps(rdata), sid),
+                                        """
+                                        UPDATE segments
+                                        SET translation = ?,
+                                            review_data = ?,
+                                            revision = CASE
+                                                WHEN (translation IS NOT ? OR review_data IS NOT ?) THEN revision + 1
+                                                ELSE revision
+                                            END
+                                        WHERE id = ?
+                                        """,
+                                        (new_trans, rdata_str, new_trans, rdata_str, sid),
                                     )
                                 conn.execute(
                                     "UPDATE jobs SET progress = ?, updated_at = ? WHERE id = ?",
