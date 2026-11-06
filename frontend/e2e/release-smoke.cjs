@@ -2,10 +2,25 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const assert = require('node:assert');
-const { chromium } = require('C:/Users/Admin/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright-core');
+
+// Configurable Playwright runtime module and screenshot dir
+const defaultPlaywrightPath = 'C:/Users/Admin/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright-core';
+const playwrightPath = process.env.PLAYWRIGHT_CORE_PATH || defaultPlaywrightPath;
+
+let playwrightModule;
+if (fs.existsSync(playwrightPath)) {
+  playwrightModule = require(playwrightPath);
+} else {
+  try {
+    playwrightModule = require('playwright-core');
+  } catch {
+    playwrightModule = require('playwright');
+  }
+}
+const { chromium } = playwrightModule;
 
 const DIST_DIR = path.resolve(__dirname, '../dist');
-const SCREENSHOTS_DIR = 'E:/Comic/ui-preferences-qa/release-20261106';
+const SCREENSHOTS_DIR = process.env.QA_OUTPUT_DIR || 'E:/Comic/ui-preferences-qa/release-20261106';
 
 // Minimal static HTTP server for dist
 function startStaticServer() {
@@ -126,7 +141,8 @@ async function runSmokeQA() {
     {
       id: 'h-1',
       segment_id: 'seg-1',
-      revision: 1,
+      old_revision: 1,
+      new_revision: 2,
       actor_username: 'admin',
       created_at: new Date(Date.now() - 3600000).toISOString(),
       old_source: '그것은 시작이었다.',
@@ -732,9 +748,31 @@ async function runSmokeQA() {
     const adminHistoryTab = await pageDesktop.waitForSelector('button:has-text("Lịch sử sửa")', { timeout: 5000 });
     await adminHistoryTab.click();
 
+    // Assert main content and page horizontal alignment: main.scrollLeft == 0, page.scrollX == 0
+    const scrollAlignment = await pageDesktop.evaluate(() => {
+      const main = document.querySelector('.main-content');
+      return {
+        mainScrollLeft: main ? main.scrollLeft : 0,
+        pageScrollX: window.scrollX || document.documentElement.scrollLeft || 0,
+      };
+    });
+    assert.strictEqual(scrollAlignment.mainScrollLeft, 0, 'main.scrollLeft must remain 0 after clicking History tab');
+    assert.strictEqual(scrollAlignment.pageScrollX, 0, 'page.scrollX must remain 0 after clicking History tab');
+    console.log('      Verified: Desktop main.scrollLeft == 0 and page.scrollX == 0 after clicking History tab');
+
     // Wait for history item card
     const historyItem = await pageDesktop.waitForSelector('.history-item-card', { timeout: 5000 });
     assert.ok(historyItem, 'EditHistoryPanel must display history item cards');
+
+    // Assert rendered history revision values (old_revision: 1 -> new_revision: 2)
+    const revBadgeText = await pageDesktop.$eval('.history-item-card', (el) => {
+      const spans = Array.from(el.querySelectorAll('span'));
+      const span = spans.find((s) => s.textContent.includes('Phiên bản') || s.textContent.includes('Revision'));
+      return span ? span.textContent : '';
+    });
+    assert.ok(revBadgeText.includes('1') && revBadgeText.includes('2'),
+      `Rendered history revision values must show 1 -> 2, got: "${revBadgeText}"`);
+    console.log(`      Verified: Rendered history revision badge "${revBadgeText.trim()}" correctly shows 1 -> 2`);
 
     const shotHistPath = path.join(SCREENSHOTS_DIR, 'history-panel.png');
     await pageDesktop.screenshot({ path: shotHistPath, fullPage: false });
