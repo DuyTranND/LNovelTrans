@@ -441,7 +441,7 @@ def test_preset_api_endpoints_and_job_launch(tmp_path: Path):
     test_app = create_app(data_dir=tmp_path)
     db_file = test_app.state.db_path
     _seed_test_book(db_file, "book_api_p2")
-    client = TestClient(test_app)
+    client = TestClient(test_app, client=("127.0.0.1", 50000))
 
     # 1. GET presets for book
     res = client.get("/api/books/book_api_p2/presets")

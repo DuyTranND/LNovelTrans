@@ -191,7 +191,7 @@ def test_setup(tmp_path: Path, monkeypatch):
     monkeypatch.setattr(AuditManager, 'start_audit', lambda self, run_id: None)
     provider = MockAuditProvider()
     app = create_app(tmp_path, provider=provider, start_worker=False)
-    client = TestClient(app)
+    client = TestClient(app, client=("127.0.0.1", 50000))
 
     epub_bytes = build_test_epub_bytes([
         {
@@ -744,7 +744,7 @@ async def test_saved_segment_chapter_title_inconsistency_regression(tmp_path: Pa
     monkeypatch.setattr(AuditManager, "start_audit", lambda self, run_id: None)
     provider = MockAuditProvider()
     app = create_app(tmp_path, provider=provider, start_worker=False)
-    client = TestClient(app)
+    client = TestClient(app, client=("127.0.0.1", 50000))
 
     # Build EPUB with exact title examples:
     # Chapter 1: <title> and <h1> both containing "상점 오픈 (1)"
@@ -877,7 +877,7 @@ async def test_title_h1_intra_chapter_disagreement(tmp_path: Path, monkeypatch):
     monkeypatch.setattr(AuditManager, "start_audit", lambda self, run_id: None)
     provider = MockAuditProvider()
     app = create_app(tmp_path, provider=provider, start_worker=False)
-    client = TestClient(app)
+    client = TestClient(app, client=("127.0.0.1", 50000))
 
     # Chapter has both <title> and <h1> with source "상점 오픈 (1)"
     epub_bytes = build_test_epub_bytes([
@@ -1175,7 +1175,7 @@ async def test_early_deterministic_title_finding_persistence_on_systemic_failure
     monkeypatch.setattr(AuditManager, "start_audit", lambda self, run_id: None)
     provider = MockAuditProvider()
     app = create_app(tmp_path, provider=provider, start_worker=False)
-    client = TestClient(app)
+    client = TestClient(app, client=("127.0.0.1", 50000))
 
     # 1. Create EPUB with two sequential chapters having <h1> in Korean source
     # '상점 오픈 (1)' and '상점 오픈 (2)', plus at least one paragraph per chapter
@@ -1306,7 +1306,7 @@ async def test_extractor_omission_global_term_discovery(tmp_path: Path, monkeypa
     monkeypatch.setattr(AuditManager, "start_audit", lambda self, run_id: None)
     provider = MockAuditProvider()
     app = create_app(tmp_path, provider=provider, start_worker=False)
-    client = TestClient(app)
+    client = TestClient(app, client=("127.0.0.1", 50000))
 
     # 3 chapters: ch1 (Chapter 1), ch2 (Chapter 2), ch157 (Chapter 157)
     epub_bytes = build_test_epub_bytes([

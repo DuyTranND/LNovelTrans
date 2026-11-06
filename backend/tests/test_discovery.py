@@ -164,7 +164,7 @@ def mock_app_client(tmp_path):
         app.state.db_path,
         provider_getter=lambda: mock_prov,
     )
-    return TestClient(app), mock_prov, app.state.db_path
+    return TestClient(app, client=("127.0.0.1", 50000)), mock_prov, app.state.db_path
 
 
 def test_provider_anti_hallucination_validation():
@@ -681,7 +681,7 @@ async def test_discovery_cancel_preserves_terminal_states_and_accurate_responses
     # 4. HTTP API Endpoint testing: terminal preservation, accurate response, and wrong-book 404
     app = create_app(data_dir=tmp_path, provider=hanging_prov, start_worker=False)
     app.state.discovery_manager = dm
-    client = TestClient(app)
+    client = TestClient(app, client=("127.0.0.1", 50000))
 
     # Cancel on completed run returns completed, preserves DB
     http_comp = client.post(f"/api/books/{book_id}/discovery/runs/{comp_run['id']}/cancel")

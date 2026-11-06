@@ -477,7 +477,7 @@ async def test_provider_network_retry_stays_on_same_key() -> None:
 
 def test_api_provider_key_status_endpoint(tmp_path: Any) -> None:
     app = create_app(data_dir=tmp_path, start_worker=False)
-    client = TestClient(app)
+    client = TestClient(app, client=("127.0.0.1", 50000))
 
     response = client.get("/api/provider/key-status")
     assert response.status_code == 200

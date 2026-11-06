@@ -207,7 +207,7 @@ def test_running_and_partial_and_stale_audit_apply_rejected_with_no_data_mutatio
 
     app = create_app(start_worker=False)
     app.state.db_path = db_path
-    client = TestClient(app)
+    client = TestClient(app, client=("127.0.0.1", 50000))
 
     # 1. Test Active (Running) run
     run = create_audit_run(db_path, book_id)
@@ -300,7 +300,7 @@ def test_manual_preview_on_incomplete_run_shows_coverage_notice_and_blocks_apply
 
     app = create_app(start_worker=False)
     app.state.db_path = db_path
-    client = TestClient(app)
+    client = TestClient(app, client=("127.0.0.1", 50000))
 
     run = create_audit_run(db_path, book_id)
     run_id = run["id"]
@@ -339,7 +339,7 @@ def test_retry_behavior_clears_stale_error_and_allows_apply_upon_full_completion
 
     app = create_app(start_worker=False)
     app.state.db_path = db_path
-    client = TestClient(app)
+    client = TestClient(app, client=("127.0.0.1", 50000))
 
     # 1. Create run with a stale failure error
     run = create_audit_run(db_path, book_id, model="gemini-3.5-flash-lite")

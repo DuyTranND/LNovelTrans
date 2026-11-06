@@ -53,7 +53,7 @@ class Provider:
 def setup(tmp_path):
     provider = Provider()
     app = create_app(tmp_path, provider=provider, start_worker=False)
-    client = TestClient(app)
+    client = TestClient(app, client=("127.0.0.1", 50000))
     epub = build_test_epub_bytes([
         {'id': 'c1', 'href': 'c1.xhtml', 'content': '<html><body>' + ''.join(f'<p>문장 {i}</p>' for i in range(6)) + '</body></html>'},
         {'id': 'c2', 'href': 'c2.xhtml', 'content': '<html><body><p>다음</p></body></html>'},
@@ -203,7 +203,7 @@ async def test_chapter_translation_processes_all_batches_to_completion(tmp_path)
     """
     provider = Provider()
     app = create_app(tmp_path, provider=provider, start_worker=False)
-    client = TestClient(app)
+    client = TestClient(app, client=("127.0.0.1", 50000))
 
     # Create EPUB with 55 paragraphs in chapter 1 (> 40 segments batch limit)
     para_count = 55
@@ -356,7 +356,7 @@ async def test_job_captures_chosen_gemini_3_5_flash_lite_model_against_later_sel
     async with httpx.AsyncClient(transport=transport) as client_http:
         provider = GeminiProvider(api_key="fake-project-key", client=client_http)
         app = create_app(tmp_path, provider=provider, start_worker=False)
-        client = TestClient(app)
+        client = TestClient(app, client=("127.0.0.1", 50000))
 
         epub = build_test_epub_bytes([
             {'id': 'c1', 'href': 'c1.xhtml', 'content': '<html><body><p>문장 0</p><p>문장 1</p></body></html>'},
@@ -831,7 +831,7 @@ async def test_call_provider_typeerror_valueerror_called_exactly_once_and_saniti
 
     provider = FailingProvider()
     app = create_app(tmp_path, provider=provider, start_worker=False)
-    client = TestClient(app)
+    client = TestClient(app, client=("127.0.0.1", 50000))
 
     epub = build_test_epub_bytes([
         {'id': 'c1', 'href': 'c1.xhtml', 'content': '<html><body><p>문장 0</p></body></html>'},

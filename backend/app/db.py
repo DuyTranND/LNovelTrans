@@ -395,6 +395,32 @@ def init_db(db_path: Path | str) -> None:
             );
 
             CREATE INDEX IF NOT EXISTS idx_prompt_presets_book ON prompt_presets(book_id);
+
+            CREATE TABLE IF NOT EXISTS segment_edit_history (
+                id TEXT PRIMARY KEY,
+                book_id TEXT NOT NULL,
+                chapter_id TEXT NOT NULL,
+                segment_id TEXT NOT NULL,
+                actor TEXT DEFAULT NULL,
+                actor_username TEXT DEFAULT NULL,
+                old_source TEXT,
+                new_source TEXT,
+                old_translation TEXT,
+                new_translation TEXT,
+                old_review_data TEXT,
+                new_review_data TEXT,
+                old_revision INTEGER NOT NULL,
+                new_revision INTEGER NOT NULL,
+                created_at TEXT NOT NULL,
+                timestamp TEXT NOT NULL,
+                FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE,
+                FOREIGN KEY (chapter_id) REFERENCES chapters(id) ON DELETE CASCADE,
+                FOREIGN KEY (segment_id) REFERENCES segments(id) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_seg_edit_hist_chapter ON segment_edit_history(chapter_id, created_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_seg_edit_hist_segment ON segment_edit_history(segment_id, created_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_seg_edit_hist_book ON segment_edit_history(book_id);
             """
         )
 
@@ -611,12 +637,14 @@ def update_chapter_segments(
     segment_updates: list[dict[str, Any]],
     new_status: str | None = None,
     enforce_revisions: bool = False,
+    actor: str | None = None,
 ) -> dict[str, Any]:
     """Apply source and translation edits to segments in a chapter with validation and CAS concurrency.
 
     Source change invalidates old translation/review unless new translation explicitly provided.
     Does not accept arbitrary client chapter status; recalculates accurately.
     Atomic CAS check guarantees no partial updates if any revision conflict is encountered.
+    Records segment edit history only for actual content changes in the same transaction.
     """
     now = utc_now()
     with get_connection(db_path) as conn:
@@ -685,74 +713,125 @@ def update_chapter_segments(
                     (seg_id,),
                 ).fetchone()
 
-            fields: list[str] = []
-            values: list[Any] = []
+            old_source = curr_row["source"] if curr_row else ""
+            old_translation = curr_row["translation"] if curr_row else None
+            old_review_data = curr_row["review_data"] if curr_row else None
+            old_revision = (
+                int(curr_row["revision"])
+                if curr_row and "revision" in curr_row.keys() and curr_row["revision"] is not None
+                else 1
+            )
 
             source_changed = False
+            new_source = old_source
             if "source" in update and update["source"] is not None:
-                new_src = update["source"]
-                if curr_row and new_src != curr_row["source"]:
+                new_source = update["source"]
+                if curr_row and new_source != old_source:
                     source_changed = True
-                fields.append("source = ?")
-                values.append(new_src)
 
             translation_changed = False
             if "translation" in update:
-                new_trans = update["translation"]
-                if curr_row and new_trans != curr_row["translation"]:
+                new_translation = update["translation"]
+                if curr_row and new_translation != old_translation:
                     translation_changed = True
-                fields.append("translation = ?")
-                values.append(new_trans)
             elif source_changed:
                 # Source change invalidates old translation unless explicitly provided
-                fields.append("translation = ?")
-                values.append(None)
+                new_translation = None
+                if old_translation is not None:
+                    translation_changed = True
+            else:
+                new_translation = old_translation
 
+            review_changed = False
             if "review_data" in update:
-                fields.append("review_data = ?")
                 rev = update["review_data"]
-                values.append(json.dumps(rev) if isinstance(rev, (dict, list)) else rev)
+                new_review_data = json.dumps(rev) if isinstance(rev, (dict, list)) else rev
+                if new_review_data != old_review_data:
+                    review_changed = True
             elif source_changed or translation_changed:
                 # Source or translation change invalidates old review unless explicitly provided
-                fields.append("review_data = ?")
-                values.append(None)
+                new_review_data = None
+                if old_review_data is not None:
+                    review_changed = True
+            else:
+                new_review_data = old_review_data
 
-            if fields:
-                fields.append("revision = revision + 1")
-                expected_rev = update.get("expected_revision")
-                if expected_rev is not None:
-                    cursor = conn.execute(
-                        f"UPDATE segments SET {', '.join(fields)} WHERE id = ? AND chapter_id = ? AND revision = ?",
-                        [*values, seg_id, chapter_id, int(expected_rev)],
+            has_content_change = source_changed or translation_changed or review_changed
+            if not has_content_change:
+                # No actual content change; skip update and omit edit history (no-op exclusion)
+                continue
+
+            fields: list[str] = [
+                "source = ?",
+                "translation = ?",
+                "review_data = ?",
+                "revision = revision + 1",
+            ]
+            values: list[Any] = [new_source, new_translation, new_review_data]
+            expected_rev = update.get("expected_revision")
+            if expected_rev is not None:
+                cursor = conn.execute(
+                    f"UPDATE segments SET {', '.join(fields)} WHERE id = ? AND chapter_id = ? AND revision = ?",
+                    [*values, seg_id, chapter_id, int(expected_rev)],
+                )
+                if cursor.rowcount == 0:
+                    cur_row = conn.execute(
+                        "SELECT source, translation, revision FROM segments WHERE id = ?",
+                        (seg_id,),
+                    ).fetchone()
+                    cur_rev = (
+                        int(cur_row["revision"])
+                        if cur_row and cur_row["revision"] is not None
+                        else 1
                     )
-                    if cursor.rowcount == 0:
-                        cur_row = conn.execute(
-                            "SELECT source, translation, revision FROM segments WHERE id = ?",
-                            (seg_id,),
-                        ).fetchone()
-                        cur_rev = (
-                            int(cur_row["revision"])
-                            if cur_row and cur_row["revision"] is not None
-                            else 1
-                        )
-                        cur_source = cur_row["source"] if cur_row else ""
-                        cur_trans = cur_row["translation"] if cur_row else None
-                        raise RevisionConflictError(
-                            conflicts=[{
-                                "segment_id": seg_id,
-                                "expected_revision": int(expected_rev),
-                                "current_revision": cur_rev,
-                                "current_source": cur_source,
-                                "current_translation": cur_trans,
-                            }],
-                            message="Xung đột phiên bản: Một hoặc nhiều đoạn văn đã được sửa đổi bởi biên tập viên khác.",
-                        )
-                else:
-                    values.append(seg_id)
-                    conn.execute(
-                        f"UPDATE segments SET {', '.join(fields)} WHERE id = ?",
-                        values,
+                    cur_source = cur_row["source"] if cur_row else ""
+                    cur_trans = cur_row["translation"] if cur_row else None
+                    raise RevisionConflictError(
+                        conflicts=[{
+                            "segment_id": seg_id,
+                            "expected_revision": int(expected_rev),
+                            "current_revision": cur_rev,
+                            "current_source": cur_source,
+                            "current_translation": cur_trans,
+                        }],
+                        message="Xung đột phiên bản: Một hoặc nhiều đoạn văn đã được sửa đổi bởi biên tập viên khác.",
                     )
+            else:
+                values.append(seg_id)
+                conn.execute(
+                    f"UPDATE segments SET {', '.join(fields)} WHERE id = ?",
+                    values,
+                )
+
+            new_revision = old_revision + 1
+            conn.execute(
+                """
+                INSERT INTO segment_edit_history (
+                    id, book_id, chapter_id, segment_id, actor, actor_username,
+                    old_source, new_source, old_translation, new_translation,
+                    old_review_data, new_review_data, old_revision, new_revision,
+                    created_at, timestamp
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    str(uuid.uuid4()),
+                    book_id,
+                    chapter_id,
+                    seg_id,
+                    actor,
+                    actor,
+                    old_source,
+                    new_source,
+                    old_translation,
+                    new_translation,
+                    old_review_data,
+                    new_review_data,
+                    old_revision,
+                    new_revision,
+                    now,
+                    now,
+                ),
+            )
 
         # Recompute chapter status based on actual segment completion
         total_non_ws = conn.execute(
@@ -795,6 +874,173 @@ def update_chapter_segments(
     if not updated:
         raise KeyError(f"Failed to retrieve updated chapter {chapter_id}")
     return updated
+
+
+def list_chapter_edit_history(
+    db_path: Path | str,
+    chapter_id: str,
+    segment_id: str | None = None,
+    limit: int = 50,
+    offset: int = 0,
+) -> dict[str, Any]:
+    """Retrieve paginated edit history records for a chapter, optionally filtered by segment_id."""
+    limit = max(1, min(limit, 200))
+    offset = max(0, offset)
+    with get_connection(db_path) as conn:
+        where_clauses = ["chapter_id = ?"]
+        params: list[Any] = [chapter_id]
+        if segment_id:
+            where_clauses.append("segment_id = ?")
+            params.append(segment_id)
+
+        where_sql = " AND ".join(where_clauses)
+
+        total_row = conn.execute(
+            f"SELECT COUNT(*) as cnt FROM segment_edit_history WHERE {where_sql}",
+            params,
+        ).fetchone()
+        total = total_row["cnt"] if total_row else 0
+
+        rows = conn.execute(
+            f"""
+            SELECT id, book_id, chapter_id, segment_id, actor, actor_username,
+                   old_source, new_source, old_translation, new_translation,
+                   old_review_data, new_review_data, old_revision, new_revision,
+                   created_at, timestamp
+            FROM segment_edit_history
+            WHERE {where_sql}
+            ORDER BY created_at DESC, id DESC
+            LIMIT ? OFFSET ?
+            """,
+            [*params, limit, offset],
+        ).fetchall()
+
+        items = []
+        for r in rows:
+            d = dict(r)
+            if d.get("old_review_data"):
+                try:
+                    d["old_review_data"] = json.loads(d["old_review_data"])
+                except Exception:
+                    pass
+            if d.get("new_review_data"):
+                try:
+                    d["new_review_data"] = json.loads(d["new_review_data"])
+                except Exception:
+                    pass
+            items.append(d)
+
+        page = (offset // limit) + 1 if limit > 0 else 1
+        return {
+            "items": items,
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+            "page": page,
+            "page_size": limit,
+            "chapter_id": chapter_id,
+            "segment_id": segment_id,
+        }
+
+
+def restore_segment_history(
+    db_path: Path | str,
+    chapter_id: str,
+    history_id: str,
+    expected_revision: int,
+    actor: str | None = None,
+) -> dict[str, Any]:
+    """Restore historical before-content state for a segment using CAS optimistic concurrency.
+
+    Applies the historical before-content (old_source, old_translation, old_review_data)
+    as a new edit with revision = current_revision + 1, recording a new edit history entry.
+    Never rewinds DB or silently overwrites.
+    """
+    with get_connection(db_path) as conn:
+        hist_row = conn.execute(
+            """
+            SELECT id, book_id, chapter_id, segment_id,
+                   old_source, old_translation, old_review_data, old_revision,
+                   new_source, new_translation, new_review_data, new_revision
+            FROM segment_edit_history
+            WHERE id = ? AND chapter_id = ?
+            """,
+            (history_id, chapter_id),
+        ).fetchone()
+        if not hist_row:
+            raise KeyError(f"History entry '{history_id}' not found for chapter '{chapter_id}'")
+
+        target_seg_id = hist_row["segment_id"]
+        target_source = hist_row["old_source"]
+        target_translation = hist_row["old_translation"]
+        target_review_data = hist_row["old_review_data"]
+
+        seg_row = conn.execute(
+            "SELECT id, source, translation, review_data, revision FROM segments WHERE id = ? AND chapter_id = ?",
+            (target_seg_id, chapter_id),
+        ).fetchone()
+        if not seg_row:
+            raise KeyError(f"Segment '{target_seg_id}' not found in chapter '{chapter_id}'")
+
+        curr_rev = int(seg_row["revision"]) if seg_row["revision"] is not None else 1
+        if int(expected_revision) != curr_rev:
+            raise RevisionConflictError(
+                conflicts=[{
+                    "segment_id": target_seg_id,
+                    "expected_revision": int(expected_revision),
+                    "current_revision": curr_rev,
+                    "current_source": seg_row["source"],
+                    "current_translation": seg_row["translation"],
+                }],
+                message="Xung đột phiên bản khi phục hồi: Đoạn văn đã bị sửa đổi bởi người khác.",
+            )
+
+        if (
+            seg_row["source"] == target_source
+            and seg_row["translation"] == target_translation
+            and seg_row["review_data"] == target_review_data
+        ):
+            raise ValueError("Phân đoạn đã ở trạng thái trước khi sửa của bản ghi lịch sử này")
+
+    update_item: dict[str, Any] = {
+        "id": target_seg_id,
+        "source": target_source,
+        "translation": target_translation,
+        "expected_revision": expected_revision,
+    }
+    if target_review_data is not None:
+        try:
+            update_item["review_data"] = json.loads(target_review_data)
+        except Exception:
+            update_item["review_data"] = target_review_data
+    else:
+        update_item["review_data"] = None
+
+    updated_chapter = update_chapter_segments(
+        db_path=db_path,
+        chapter_id=chapter_id,
+        segment_updates=[update_item],
+        enforce_revisions=True,
+        actor=actor,
+    )
+
+    restored_seg = next(
+        (s for s in updated_chapter.get("segments", []) if s["id"] == target_seg_id),
+        None,
+    )
+    new_rev = restored_seg["revision"] if restored_seg else (expected_revision + 1)
+
+    return {
+        **updated_chapter,
+        "status": "ok",
+        "chapter_status": updated_chapter.get("status"),
+        "message": "Phục hồi phân đoạn thành công",
+        "history_id": history_id,
+        "segment_id": target_seg_id,
+        "revision": new_rev,
+        "restored_segment": restored_seg,
+        "chapter": updated_chapter,
+    }
 
 
 def list_glossary(db_path: Path | str, book_id: str) -> list[dict[str, Any]]:

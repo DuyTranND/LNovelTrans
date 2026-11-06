@@ -592,7 +592,7 @@ def test_task_c_api_endpoints_semantic_review(tmp_path: Path) -> None:
 
     app = create_app(data_dir=tmp_path, start_worker=False)
     app.state.db_path = db_path
-    client = TestClient(app)
+    client = TestClient(app, client=("127.0.0.1", 50000))
 
     # 1. Trigger semantic review
     resp = client.post(f"/api/books/{book_id}/consistency-reviews/{run_id}/semantic-review")

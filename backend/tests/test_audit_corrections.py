@@ -546,7 +546,7 @@ def test_api_correction_endpoints(tmp_path: Path) -> None:
 
     app = create_app(start_worker=False)
     app.state.db_path = db_path
-    client = TestClient(app)
+    client = TestClient(app, client=("127.0.0.1", 50000))
 
     run = create_audit_run(db_path, "book_api_test")
     run_id = run["id"]
@@ -628,7 +628,7 @@ def test_regression_get_book_consistency_reviews_list(tmp_path: Path) -> None:
 
     app = create_app(start_worker=False)
     app.state.db_path = db_path
-    client = TestClient(app)
+    client = TestClient(app, client=("127.0.0.1", 50000))
 
     # 1. Non-existent book returns 404
     resp_404 = client.get("/api/books/non_existent_book/consistency-reviews")
@@ -668,7 +668,7 @@ def test_corrections_routes_registered_and_reachable(tmp_path: Path) -> None:
 
     app = create_app(start_worker=False)
     app.state.db_path = db_path
-    client = TestClient(app)
+    client = TestClient(app, client=("127.0.0.1", 50000))
 
     run = create_audit_run(db_path, "book_routes_test")
     run_id = run["id"]
@@ -1198,7 +1198,7 @@ def test_guard_incomplete_semantic_reviews(tmp_path: Path) -> None:
 
     app = create_app(start_worker=False)
     app.state.db_path = db_path
-    client = TestClient(app)
+    client = TestClient(app, client=("127.0.0.1", 50000))
 
     run = create_audit_run(db_path, book_id)
     run_id = run["id"]

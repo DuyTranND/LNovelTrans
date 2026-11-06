@@ -109,7 +109,7 @@ def sample_epub_bytes() -> bytes:
 @pytest.fixture
 def client(tmp_path):
     app = create_app(data_dir=tmp_path)
-    return TestClient(app)
+    return TestClient(app, client=("127.0.0.1", 50000))
 
 
 def test_upload_and_spine_order(client, sample_epub_bytes, tmp_path):
@@ -181,7 +181,7 @@ def test_chapter_editing_persisted_after_app_restart(client, sample_epub_bytes, 
 
     # Restart app pointing to same data_dir
     new_app = create_app(data_dir=tmp_path)
-    new_client = TestClient(new_app)
+    new_client = TestClient(new_app, client=("127.0.0.1", 50000))
 
     # Verify edits persisted
     reloaded_ch = new_client.get(f"/api/chapters/{ch1_id}").json()

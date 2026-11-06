@@ -151,7 +151,7 @@ def title_inconsistency_setup(tmp_path: Path, monkeypatch):
     monkeypatch.setattr(AuditManager, "start_audit", lambda self, run_id: None)
     provider = MockFailingProvider(should_fail=True)
     app = create_app(tmp_path, provider=provider, start_worker=False)
-    client = TestClient(app)
+    client = TestClient(app, client=("127.0.0.1", 50000))
 
     epub_bytes = build_two_chapter_title_epub()
     upload_res = client.post("/api/books", files={"file": ("book.epub", epub_bytes)})

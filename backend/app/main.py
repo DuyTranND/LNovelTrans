@@ -72,6 +72,7 @@ from backend.app.db import (
     list_audit_runs,
     list_books,
     list_characters,
+    list_chapter_edit_history,
     list_discovery_proposals,
     list_discovery_runs,
     list_glossary,
@@ -82,6 +83,7 @@ from backend.app.db import (
     recover_interrupted_discovery_runs,
     recover_interrupted_jobs,
     reject_discovery_proposal,
+    restore_segment_history,
     save_parsed_book,
     set_default_prompt_preset,
     set_setting,
@@ -129,6 +131,11 @@ class SegmentUpdate(BaseModel):
 class ChapterPatchRequest(BaseModel):
     segments: list[SegmentUpdate] = Field(default_factory=list)
     status: str | None = None
+
+
+class ChapterEditHistoryRestoreRequest(BaseModel):
+    expected_revision: int
+    history_id: str | None = None
 
 
 class GlossaryCreateRequest(BaseModel):
@@ -716,6 +723,9 @@ def create_app(
 
         enforce_revisions = not override
 
+        user = getattr(request.state, "user", None)
+        actor = getattr(user, "username", None) if user else None
+
         try:
             updates = [s.model_dump(exclude_unset=True) for s in payload.segments]
             updated = update_chapter_segments(
@@ -724,6 +734,7 @@ def create_app(
                 updates,
                 new_status=payload.status,
                 enforce_revisions=enforce_revisions,
+                actor=actor,
             )
             return updated
         except RevisionConflictError as e:
@@ -744,6 +755,135 @@ def create_app(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=str(e),
             )
+
+    # Chapter Edit History
+    @app.get("/api/chapters/{chapter_id}/edit-history")
+    async def get_chapter_edit_history_endpoint(
+        chapter_id: str,
+        request: Request,
+        segment_id: str | None = None,
+        limit: int = Query(default=50, ge=1, le=200),
+        offset: int = Query(default=0, ge=0),
+        page: int | None = Query(default=None, ge=1),
+        page_size: int | None = Query(default=None, ge=1, le=200),
+    ) -> dict[str, Any]:
+        user = getattr(request.state, "user", None)
+        role = getattr(user, "role", None)
+        if not user or (role != UserRole.ADMIN and role != UserRole.ADMIN.value):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Chỉ quản trị viên mới có quyền truy cập lịch sử chỉnh sửa",
+            )
+
+        chapter = get_chapter(app.state.db_path, chapter_id)
+        if not chapter:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Không tìm thấy chương",
+            )
+
+        if page is not None:
+            eff_page_size = page_size or limit
+            eff_offset = (page - 1) * eff_page_size
+            eff_limit = eff_page_size
+        else:
+            eff_limit = limit
+            eff_offset = offset
+
+        return list_chapter_edit_history(
+            app.state.db_path,
+            chapter_id=chapter_id,
+            segment_id=segment_id,
+            limit=eff_limit,
+            offset=eff_offset,
+        )
+
+    async def _handle_restore_history(
+        chapter_id: str,
+        history_id: str,
+        expected_revision: int,
+        request: Request,
+    ) -> dict[str, Any]:
+        user = getattr(request.state, "user", None)
+        role = getattr(user, "role", None)
+        if not user or (role != UserRole.ADMIN and role != UserRole.ADMIN.value):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Chỉ quản trị viên mới có quyền phục hồi lịch sử chỉnh sửa",
+            )
+
+        chapter = get_chapter(app.state.db_path, chapter_id)
+        if not chapter:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Không tìm thấy chương",
+            )
+
+        if has_running_job(app.state.db_path, chapter["book_id"]):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Sách đang có tác vụ đang chạy hoặc tạm dừng, không thể chỉnh sửa",
+            )
+
+        actor = getattr(user, "username", "admin")
+        try:
+            return restore_segment_history(
+                app.state.db_path,
+                chapter_id=chapter_id,
+                history_id=history_id,
+                expected_revision=expected_revision,
+                actor=actor,
+            )
+        except RevisionConflictError as e:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "message": e.message,
+                    "conflicts": e.conflicts,
+                },
+            )
+        except KeyError as e:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=str(e),
+            )
+        except ValueError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(e),
+            )
+
+    @app.post("/api/chapters/{chapter_id}/edit-history/{history_id}/restore")
+    async def restore_chapter_edit_history_endpoint(
+        chapter_id: str,
+        history_id: str,
+        payload: ChapterEditHistoryRestoreRequest,
+        request: Request,
+    ) -> dict[str, Any]:
+        return await _handle_restore_history(
+            chapter_id=chapter_id,
+            history_id=history_id,
+            expected_revision=payload.expected_revision,
+            request=request,
+        )
+
+    @app.post("/api/chapters/{chapter_id}/edit-history/restore")
+    async def restore_chapter_edit_history_alt_endpoint(
+        chapter_id: str,
+        payload: ChapterEditHistoryRestoreRequest,
+        request: Request,
+    ) -> dict[str, Any]:
+        if not payload.history_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Thiếu 'history_id' để phục hồi",
+            )
+        return await _handle_restore_history(
+            chapter_id=chapter_id,
+            history_id=payload.history_id,
+            expected_revision=payload.expected_revision,
+            request=request,
+        )
 
     # Glossary
     @app.get("/api/books/{book_id}/glossary")

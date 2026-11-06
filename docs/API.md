@@ -107,6 +107,7 @@ Tất cả đường dẫn API đều có tiền tố `/api`. Trả về dữ li
   - Thay đổi `source` sẽ tự động vô hiệu hóa bản dịch cũ (`translation = null`) và đánh giá cũ (`review_data = null`) trừ khi bản dịch mới được cung cấp cụ thể.
   - Trạng thái chương được tính toán tự động dựa trên số đoạn đã dịch (`untranslated`, `partial`, `translated`), không chấp nhận trạng thái tùy tiện từ client.
   - Từ chối chỉnh sửa nếu chương thuộc sách đang có tác vụ chạy ngầm (`running` hoặc `pausing`).
+  - Ghi nhận lịch sử chỉnh sửa (`segment_edit_history`) trong cùng giao dịch đối với các đoạn có thay đổi nội dung thực tế (`source`, `translation`, hoặc `review_data`), kèm tên người dùng đã xác thực (`actor`). Bỏ qua không ghi lịch sử với các lượt cập nhật không thay đổi nội dung (no-op) hoặc khi gặp xung đột phiên bản/rollback.
 - **Yêu cầu**:
   ```json
   {
@@ -114,16 +115,91 @@ Tất cả đường dẫn API đều có tiền tố `/api`. Trả về dữ li
       {
         "id": "s9f8...",
         "source": "Chỉnh sửa câu gốc nếu cần",
-        "translation": "Bản dịch được cập nhật"
+        "translation": "Bản dịch được cập nhật",
+        "expected_revision": 1
       }
     ]
   }
   ```
 - **Phản hồi**: `200 OK`
 - **Lỗi**:
-  - `400 Bad Request`: Mã đoạn không tồn tại.
+  - `400 Bad Request`: Mã đoạn không tồn tại hoặc trùng lặp trong batch.
+  - `401 Unauthorized`: Chưa đăng nhập.
+  - `403 Forbidden`: Vai trò không có quyền sửa chương.
   - `404 Not Found`: Không tìm thấy chương.
-  - `409 Conflict`: Sách đang có tác vụ đang chạy (`running` hoặc `pausing`).
+  - `409 Conflict`: Sách đang có tác vụ đang chạy (`running` hoặc `pausing`) hoặc xung đột phiên bản CAS (`expected_revision` không khớp).
+
+### `GET /api/chapters/{id}/edit-history`
+- **Mô tả**: Lấy danh sách lịch sử chỉnh sửa phân đoạn của chương theo thứ tự mới nhất trước. Chỉ dành riêng cho quản trị viên (Admin-only; endpoint chủ động kiểm tra vai trò admin vì middleware cho phép phương thức an toàn GET với mọi vai trò).
+- **Phân trang & Lọc**:
+  - `limit`: Số lượng bản ghi tối đa trên một trang (mặc định 50, giới hạn trong khoảng 1..200).
+  - `offset`: Vị trí bản ghi bắt đầu (mặc định 0).
+  - `page`: Số trang (tùy chọn, ge=1).
+  - `page_size`: Kích thước trang (tùy chọn, 1..200).
+  - `segment_id`: Lọc lịch sử theo một mã phân đoạn cụ thể (tùy chọn).
+- **Phản hồi**: `200 OK`
+  ```json
+  {
+    "items": [
+      {
+        "id": "hist-uuid-...",
+        "book_id": "b3e0c...",
+        "chapter_id": "c1f2...",
+        "segment_id": "s9f8...",
+        "actor": "admin_user",
+        "actor_username": "admin_user",
+        "old_source": "Original text",
+        "new_source": "Original text",
+        "old_translation": "Bản dịch cũ",
+        "new_translation": "Bản dịch mới",
+        "old_review_data": null,
+        "new_review_data": null,
+        "old_revision": 1,
+        "new_revision": 2,
+        "created_at": "2026-11-06T16:30:00+00:00",
+        "timestamp": "2026-11-06T16:30:00+00:00"
+      }
+    ],
+    "total": 1,
+    "limit": 50,
+    "offset": 0,
+    "page": 1,
+    "page_size": 50,
+    "chapter_id": "c1f2...",
+    "segment_id": null
+  }
+  ```
+- **Lỗi**:
+  - `401 Unauthorized`: Chưa đăng nhập.
+  - `403 Forbidden`: Người dùng không phải là quản trị viên (`admin`).
+  - `404 Not Found`: Không tìm thấy chương.
+
+### `POST /api/chapters/{id}/edit-history/{history_id}/restore`
+- **Mô tả**: Phục hồi trạng thái trước khi sửa (`old_source`, `old_translation`, `old_review_data`) của một bản ghi lịch sử cụ thể. Thao tác này áp dụng nội dung lịch sử như một **lượt chỉnh sửa mới** với số phiên bản tăng dần (`revision = revision + 1`) và ghi nhận một bản ghi lịch sử mới trong cùng giao dịch; tuyệt đối không tua lại DB, không xóa các revision sau và không ghi đè âm thầm. Chặn phục hồi nếu sách đang có tác vụ đang chạy (`running` hoặc `pausing`). Yêu cầu quyền quản trị viên (`admin`) và CSRF token hợp lệ.
+- **Yêu cầu**:
+  ```json
+  {
+    "expected_revision": 2
+  }
+  ```
+  *(Có thể gọi tương đương qua `POST /api/chapters/{id}/edit-history/restore` với body kèm `"history_id"`)*
+- **Phản hồi**: `200 OK`
+  ```json
+  {
+    "status": "ok",
+    "message": "Phục hồi phân đoạn thành công",
+    "history_id": "hist-uuid-...",
+    "segment_id": "s9f8...",
+    "revision": 3,
+    "chapter": { ... }
+  }
+  ```
+- **Lỗi**:
+  - `400 Bad Request`: Nội dung phân đoạn hiện tại đã trùng khớp với bản ghi lịch sử hoặc thiếu dữ liệu yêu cầu.
+  - `401 Unauthorized`: Chưa đăng nhập.
+  - `403 Forbidden`: Người dùng không phải là quản trị viên (`admin`) hoặc CSRF token không hợp lệ.
+  - `404 Not Found`: Không tìm thấy chương, phân đoạn hoặc bản ghi lịch sử.
+  - `409 Conflict`: Sách đang có tác vụ nền đang chạy/tạm dừng, hoặc xung đột phiên bản CAS (`expected_revision` không khớp phiên bản hiện tại).
 
 ---
 

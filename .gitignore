@@ -11,3 +11,13 @@ frontend/dist/
 worker-task.txt
 *-task.txt
 *.log
+
+# Root exclusions
+/.tmp_*/
+/.pytest_*/
+/_isolated_ci_*/
+/.agy-staff/
+/.agy_task_prompt.txt
+/output/
+/docs/editorial/
+/AGENTS.md

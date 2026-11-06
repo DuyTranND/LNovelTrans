@@ -471,7 +471,7 @@ def test_backend_guard_prevents_preview_and_apply_when_semantic_not_complete(tmp
     run_id = run["id"]
 
     app.state.db_path = db_path
-    client = TestClient(app)
+    client = TestClient(app, client=("127.0.0.1", 50000))
 
     # 1. Base audit completed, but semantic review is 'running'
     update_audit_run(

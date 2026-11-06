@@ -8,6 +8,7 @@ late distant chapter tracking, ambiguity handling, and report output schema.
 from __future__ import annotations
 
 import json
+import os
 import re
 import sqlite3
 from pathlib import Path
@@ -32,15 +33,73 @@ from scripts.consistency_fullbook_readonly import (
 )
 
 
-def test_production_db_readonly_mode_ro_enforcement():
+def test_production_db_readonly_mode_ro_enforcement(tmp_path: Path) -> None:
     """Verify that open_readonly_db enforces SQLite mode=ro and strictly blocks writes."""
-    conn = open_readonly_db(DEFAULT_DB_PATH)
+    test_db = tmp_path / "test_readonly.db"
+
+    # Initialize minimum actual schema
+    conn_setup = sqlite3.connect(str(test_db))
+    conn_setup.execute(
+        """
+        CREATE TABLE chapters (
+            id TEXT PRIMARY KEY,
+            book_id TEXT NOT NULL,
+            manifest_id TEXT NOT NULL,
+            spine_index INTEGER NOT NULL,
+            archive_path TEXT NOT NULL,
+            href TEXT NOT NULL,
+            title TEXT,
+            media_type TEXT NOT NULL,
+            raw_bytes BLOB NOT NULL,
+            status TEXT NOT NULL DEFAULT 'untranslated',
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+        """
+    )
+    conn_setup.execute(
+        """
+        CREATE TABLE settings (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+        """
+    )
+    conn_setup.execute(
+        """
+        CREATE TABLE glossary (
+            id TEXT PRIMARY KEY,
+            book_id TEXT NOT NULL,
+            source TEXT NOT NULL,
+            target TEXT NOT NULL
+        )
+        """
+    )
+    conn_setup.execute(
+        """
+        CREATE TABLE consistency_audit_findings (
+            id TEXT PRIMARY KEY,
+            book_id TEXT NOT NULL,
+            category TEXT NOT NULL
+        )
+        """
+    )
+    conn_setup.execute(
+        "INSERT INTO chapters (id, book_id, manifest_id, spine_index, archive_path, href, title, media_type, raw_bytes, status, created_at, updated_at) "
+        "VALUES ('ch1', 'book_ro', 'm1', 1, 'a', 'h', 'Title 1', 'text/html', X'', 'translated', 'now', 'now')"
+    )
+    conn_setup.execute("INSERT INTO settings (key, value, updated_at) VALUES ('test', 'val', 'now')")
+    conn_setup.commit()
+    conn_setup.close()
+
+    conn = open_readonly_db(test_db)
     try:
         cur = conn.cursor()
         # Verify read operations succeed
-        cur.execute("SELECT count(*) FROM chapters WHERE book_id = ?", (DEFAULT_BOOK_ID,))
+        cur.execute("SELECT count(*) FROM chapters WHERE book_id = ?", ("book_ro",))
         count = cur.fetchone()[0]
-        assert count == 157
+        assert count == 1
 
         # Verify UPDATE is blocked with OperationalError
         with pytest.raises(sqlite3.OperationalError, match="readonly database"):
@@ -59,6 +118,112 @@ def test_production_db_readonly_mode_ro_enforcement():
         conn.close()
 
 
+def test_synthetic_title_review_deterministic_groups_and_ordinal(tmp_path: Path) -> None:
+    """Synthetic title grouping and ordinal test exercising review_chapter_titles without live DB."""
+    test_db = tmp_path / "synthetic_titles.db"
+    book_id = "syn_book_1"
+
+    conn_setup = sqlite3.connect(str(test_db))
+    conn_setup.execute(
+        """
+        CREATE TABLE chapters (
+            id TEXT PRIMARY KEY,
+            book_id TEXT NOT NULL,
+            manifest_id TEXT NOT NULL,
+            spine_index INTEGER NOT NULL,
+            archive_path TEXT NOT NULL,
+            href TEXT NOT NULL,
+            title TEXT,
+            media_type TEXT NOT NULL,
+            raw_bytes BLOB NOT NULL,
+            status TEXT NOT NULL DEFAULT 'translated',
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+        """
+    )
+    conn_setup.execute(
+        """
+        CREATE TABLE segments (
+            id TEXT PRIMARY KEY,
+            chapter_id TEXT NOT NULL,
+            book_id TEXT NOT NULL,
+            seq_order INTEGER NOT NULL,
+            dom_path TEXT NOT NULL,
+            node_type TEXT NOT NULL,
+            original_source TEXT NOT NULL,
+            source TEXT NOT NULL,
+            translation TEXT,
+            parent_tag TEXT,
+            is_whitespace INTEGER NOT NULL DEFAULT 0,
+            review_data TEXT DEFAULT NULL,
+            revision INTEGER NOT NULL DEFAULT 1
+        )
+        """
+    )
+
+    # Chapters & title segments:
+    # 1. Ch 0: 각성 (1) -> Thức tỉnh (1)
+    # 2. Ch 1: 각성 (2) -> Thức tỉnh  (Ordinal missing in translation!)
+    # 3. Ch 2: 계획 도시 (1) -> Thành phố quy hoạch (1)
+    # 4. Ch 3: 계획 도시 (2) -> Đô thị quy hoạch (2)  (Substantive divergence in translation stem!)
+    # 5. Ch 4: 데우스 엑스 마키나 (1) -> Deus Ex Machina (1)
+    # 6. Ch 5: 데우스 엑스 마키나 (2) -> deus ex machina (2)  (Case-only difference!)
+    chapters_data = [
+        ("ch_0", 0, "각성 (1)", "Thức tỉnh (1)"),
+        ("ch_1", 1, "각성 (2)", "Thức tỉnh"),
+        ("ch_2", 2, "계획 도시 (1)", "Thành phố quy hoạch (1)"),
+        ("ch_3", 3, "계획 도시 (2)", "Đô thị quy hoạch (2)"),
+        ("ch_4", 4, "데우스 엑스 마키나 (1)", "Deus Ex Machina (1)"),
+        ("ch_5", 5, "데우스 엑스 마키나 (2)", "deus ex machina (2)"),
+    ]
+
+    for ch_id, sp, src, trans in chapters_data:
+        conn_setup.execute(
+            "INSERT INTO chapters VALUES (?, ?, ?, ?, 'a', 'h', ?, 'text/html', X'', 'translated', 'now', 'now')",
+            (ch_id, book_id, f"man_{sp}", sp, src),
+        )
+        conn_setup.execute(
+            "INSERT INTO segments VALUES (?, ?, ?, 0, '/html/body/h1[1]', 'text', ?, ?, ?, 'h1', 0, NULL, 1)",
+            (f"seg_{ch_id}", ch_id, book_id, src, src, trans),
+        )
+
+    conn_setup.commit()
+    conn_setup.close()
+
+    conn = open_readonly_db(test_db)
+    try:
+        res: TitleReviewResult = review_chapter_titles(conn, book_id)
+
+        assert res.total_chapters_reviewed == 6
+        assert res.chapters_with_titles == 6
+
+        # Substantive title groups: "계획 도시" has distinct translations ("Đô thị quy hoạch" vs "Thành phố quy hoạch")
+        sub_sources = {g["source"]: g for g in res.substantive_title_groups}
+        assert "계획 도시" in sub_sources
+        assert sub_sources["계획 도시"]["chapter_count"] == 2
+        assert len(sub_sources["계획 도시"]["distinct_variants"]) == 2
+
+        # Case-only title groups: "데우스 엑스 마키나" ("Deus Ex Machina" vs "deus ex machina")
+        case_sources = {g["source"]: g for g in res.case_only_title_groups}
+        assert "데우스 엑스 마키나" in case_sources
+        assert case_sources["데우스 엑스 마키나"]["chapter_count"] == 2
+
+        # Ordinal mismatches: Ch 1 ("각성 (2)" -> "Thức tỉnh") missing "(2)"
+        assert len(res.ordinal_mismatches) == 1
+        om = res.ordinal_mismatches[0]
+        assert om["chapter"] == 2  # chapter_num is spine_index + 1 = 2
+        assert om["source"] == "각성 (2)"
+        assert om["translation"] == "Thức tỉnh"
+        assert om["expected_ordinal"] == "(2)"
+    finally:
+        conn.close()
+
+
+@pytest.mark.skipif(
+    os.environ.get("COMIC_RUN_PRIVATE_BOOK_TESTS") != "1",
+    reason="Requires private historical real-book database (opt-in with COMIC_RUN_PRIVATE_BOOK_TESTS=1)",
+)
 def test_title_review_deterministic_groups_and_ordinal():
     """Verify title analysis extracts 26 substantive groups and Chapter 2 ordinal mismatch."""
     conn = open_readonly_db(DEFAULT_DB_PATH)
@@ -130,6 +295,35 @@ def test_korean_boundary_and_particle_parser():
     assert match_korean_term_in_text("소염제", "소염") is None
 
 
+def test_vietnamese_variant_strict_boundary_and_shorter_substring_guard_synthetic():
+    """Verify Vietnamese variant search respects word boundaries and guards shorter substrings using synthetic inputs."""
+    test_text = "Tôi gặp Bạch Ân Nguyệt tại văn phòng cùng Ân Nguyệt."
+    test_vars = ["Bạch Ân Nguyệt", "Ân Nguyệt", "Nguyệt"]
+
+    matched = []
+    covered_spans = []
+    for v in test_vars:
+        pat = re.compile(rf"(?<![\w\u00C0-\u1EF9]){re.escape(v)}(?![\w\u00C0-\u1EF9])", re.IGNORECASE)
+
+        for m in pat.finditer(test_text):
+            span = m.span()
+            # Guard against overlapping shorter substrings
+            if any(span[0] < cs[1] and span[1] > cs[0] for cs in covered_spans):
+                continue
+            covered_spans.append(span)
+            matched.append((v, test_text[span[0]:span[1]]))
+
+    # Should match Bạch Ân Nguyệt once and Ân Nguyệt once (at the end), NOT Nguyệt!
+    matched_variants = [m[0] for m in matched]
+    assert "Bạch Ân Nguyệt" in matched_variants
+    assert "Ân Nguyệt" in matched_variants
+    assert "Nguyệt" not in matched_variants  # Shorter substring guarded!
+
+
+@pytest.mark.skipif(
+    os.environ.get("COMIC_RUN_PRIVATE_BOOK_TESTS") != "1",
+    reason="Requires private historical real-book database and candidates snapshot (opt-in with COMIC_RUN_PRIVATE_BOOK_TESTS=1)",
+)
 def test_vietnamese_variant_strict_boundary_and_shorter_substring_guard():
     """Verify Vietnamese variant search respects word boundaries and guards shorter substrings."""
     conn = open_readonly_db(DEFAULT_DB_PATH)
@@ -222,6 +416,10 @@ def test_ambiguity_and_no_match_handling():
     assert "cần rà soát thủ công" in item["reason"]
 
 
+@pytest.mark.skipif(
+    os.environ.get("COMIC_RUN_PRIVATE_BOOK_TESTS") != "1",
+    reason="Requires private historical real-book database (opt-in with COMIC_RUN_PRIVATE_BOOK_TESTS=1)",
+)
 def test_late_distant_chapters_real_text_divergence():
     """Verify that late distant chapters (98-157) contain actual verified divergent variants."""
     conn = open_readonly_db(DEFAULT_DB_PATH)
@@ -238,7 +436,7 @@ def test_late_distant_chapters_real_text_divergence():
         # 1. 스타플렉스: Starplex vs Starflex in late chapters
         starplex_hits = scan_results["스타플렉스"]["variant_hits"]
         starplex_late = sum(1 for o in starplex_hits.get("Starplex", []) if o.chapter_num > 97)
-        starflex_late = sum(1 for o in starplex_hits.get("Starflex", []) if o.chapter_num > 97)
+        starflex_late = sum(1 for o in starflex_hits.get("Starflex", []) if o.chapter_num > 97)
         assert starplex_late > 0, "Starplex should appear in chapters 98-157"
         assert starflex_late > 0, "Starflex should appear in chapters 98-157"
 
@@ -271,6 +469,10 @@ def test_late_distant_chapters_real_text_divergence():
         conn.close()
 
 
+@pytest.mark.skipif(
+    os.environ.get("COMIC_RUN_PRIVATE_BOOK_TESTS") != "1",
+    reason="Requires private historical real-book reports and outputs (opt-in with COMIC_RUN_PRIVATE_BOOK_TESTS=1)",
+)
 def test_verified_reports_exist_and_match_metrics():
     """Verify generated fullbook verified reports exist, preserve earlier reports, and contain valid schema."""
     # 1. Verify previous reports are preserved

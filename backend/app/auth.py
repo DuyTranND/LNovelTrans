@@ -103,6 +103,34 @@ def hash_password(password: str, salt: str | None = None) -> str:
     return f"pbkdf2_sha256$100000${salt}${derived.hex()}"
 
 
+def validate_password_hash(hash_str: str) -> None:
+    """Validate password hash format, algorithm, iterations, salt, and digest.
+
+    Requirements:
+    - Algorithm: pbkdf2_sha256
+    - Iterations: integer bounded between 100,000 and 1,000,000
+    - Salt: non-empty reasonable salt (4..128 printable chars)
+    - Digest: exactly 64 hexadecimal characters
+    """
+    if not isinstance(hash_str, str) or not hash_str.strip():
+        raise ValueError("Password hash must be a non-empty string")
+    parts = hash_str.split("$")
+    if len(parts) != 4 or parts[0] != "pbkdf2_sha256":
+        raise ValueError("Password hash must use pbkdf2_sha256 algorithm format: pbkdf2_sha256$<iter>$<salt>$<digest>")
+    try:
+        iterations = int(parts[1])
+    except ValueError:
+        raise ValueError("Password hash iterations must be a valid integer")
+    if not (100_000 <= iterations <= 1_000_000):
+        raise ValueError(f"Password hash iterations ({iterations}) must be bounded between 100,000 and 1,000,000")
+    salt = parts[2]
+    if not salt or len(salt) < 4 or len(salt) > 128 or not salt.isprintable() or salt.isspace():
+        raise ValueError("Password hash salt must be non-empty and between 4 and 128 characters")
+    digest = parts[3]
+    if len(digest) != 64 or not all(c in "0123456789abcdefABCDEF" for c in digest):
+        raise ValueError("Password hash digest must be a 64-character hexadecimal string")
+
+
 def verify_password(password: str, hashed: str) -> bool:
     """Verify password against hashed string using constant-time comparison."""
     if not hashed:
@@ -131,49 +159,107 @@ def verify_password(password: str, hashed: str) -> bool:
 def get_configured_users() -> dict[str, AuthUser]:
     """Load invite-only users configured via safe environment variables."""
     users: dict[str, AuthUser] = {}
+    is_prod = os.getenv("APP_ENV", "").strip().lower() == "production"
 
     raw_json = os.environ.get("AUTH_USERS", "").strip()
     if raw_json:
         try:
             parsed = json.loads(raw_json)
-            if isinstance(parsed, list):
-                for item in parsed:
-                    if not isinstance(item, dict):
+        except Exception as e:
+            if is_prod:
+                raise ValueError(f"Malformed AUTH_USERS JSON: {e}") from e
+            logger.warning("Failed to parse AUTH_USERS JSON: %s", type(e).__name__)
+            parsed = None
+
+        if parsed is None:
+            if is_prod:
+                raise ValueError("AUTH_USERS root cannot be null; must be a non-empty JSON list")
+        elif not isinstance(parsed, list):
+            if is_prod:
+                raise ValueError("AUTH_USERS root must be a JSON list")
+            logger.warning("AUTH_USERS root must be a JSON list")
+        elif is_prod and len(parsed) == 0:
+            raise ValueError("AUTH_USERS list cannot be empty in production")
+        else:
+            for idx, item in enumerate(parsed):
+                if not isinstance(item, dict):
+                    if is_prod:
+                        raise ValueError(f"AUTH_USERS entry at index {idx} must be a dictionary")
+                    continue
+
+                raw_u = item.get("username")
+                if is_prod:
+                    if raw_u is None or not isinstance(raw_u, str):
+                        raise ValueError(f"AUTH_USERS entry at index {idx} username must be a non-empty string")
+                    u = raw_u.strip()
+                    if not u:
+                        raise ValueError(f"AUTH_USERS entry at index {idx} has empty username")
+                else:
+                    if raw_u is None:
                         continue
-                    u = str(item.get("username", "")).strip()
+                    u = str(raw_u).strip()
                     if not u:
                         continue
-                    r_str = str(item.get("role", "viewer")).strip().lower()
-                    try:
-                        role = UserRole(r_str)
-                    except ValueError:
+
+                u_lower = u.lower()
+                if u_lower in users:
+                    if is_prod:
+                        raise ValueError(f"Duplicate username '{u}' configured in AUTH_USERS")
+                    continue
+
+                if "role" in item:
+                    raw_role = item["role"]
+                    if is_prod and (raw_role is None or not isinstance(raw_role, str)):
+                        raise ValueError(f"Invalid role for user '{u}': role must be a non-empty string")
+                    if raw_role is not None:
+                        r_str = str(raw_role).strip().lower()
+                        try:
+                            role = UserRole(r_str)
+                        except ValueError:
+                            if is_prod:
+                                raise ValueError(f"Invalid role '{raw_role}' for user '{u}'")
+                            role = UserRole.VIEWER
+                    else:
                         role = UserRole.VIEWER
+                else:
+                    role = UserRole.VIEWER
 
-                    if os.getenv("APP_ENV", "").strip().lower() == "production" and "password" in item:
-                        raise ValueError("Plaintext AUTH_USERS passwords forbidden in production")
+                if is_prod and "password" in item:
+                    raise ValueError("Plaintext AUTH_USERS passwords forbidden in production")
 
-                    pw_hash = str(item.get("password_hash", ""))
-                    if not pw_hash and "password" in item:
-                        # Convert plain password in env directly to hash in memory
-                        pw_hash = hash_password(str(item["password"]))
+                pw_hash = str(item.get("password_hash", ""))
+                if not pw_hash and "password" in item:
+                    # Convert plain password in env directly to hash in memory
+                    pw_hash = hash_password(str(item["password"]))
 
-                    users[u.lower()] = AuthUser(
-                        username=u,
-                        role=role,
-                        password_hash=pw_hash,
-                    )
-        except Exception as e:
-            if os.getenv("APP_ENV", "").strip().lower() == "production":
-                raise
-            logger.warning("Failed to parse AUTH_USERS JSON: %s", type(e).__name__)
+                if is_prod:
+                    if not pw_hash:
+                        raise ValueError(f"Missing password_hash for user '{u}'")
+                    validate_password_hash(pw_hash)
+
+                users[u_lower] = AuthUser(
+                    username=u,
+                    role=role,
+                    password_hash=pw_hash,
+                )
 
     # Single-admin shorthand configuration
     admin_pw = os.environ.get("AUTH_ADMIN_PASSWORD", "").strip()
-    if os.getenv("APP_ENV", "").strip().lower() == "production" and admin_pw:
+    if is_prod and admin_pw:
         raise ValueError("Plaintext admin password forbidden in production")
     admin_hash = os.environ.get("AUTH_ADMIN_PASSWORD_HASH", "").strip()
+
     if admin_pw or admin_hash:
-        effective_hash = admin_hash or hash_password(admin_pw)
+        if is_prod:
+            if "admin" in users:
+                raise ValueError("Duplicate configured admin: username 'admin' already configured in AUTH_USERS")
+            if not admin_hash:
+                raise ValueError("AUTH_ADMIN_PASSWORD_HASH must not be empty in production")
+            validate_password_hash(admin_hash)
+            effective_hash = admin_hash
+        else:
+            effective_hash = admin_hash or hash_password(admin_pw)
+
         users["admin"] = AuthUser(
             username="admin",
             role=UserRole.ADMIN,

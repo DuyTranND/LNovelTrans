@@ -52,7 +52,7 @@ def multi_book_setup(tmp_path):
     """Setup app with two distinct books in SQLite database."""
     provider = FakeMockProvider()
     app = create_app(data_dir=tmp_path, provider=provider, start_worker=False)
-    client = TestClient(app)
+    client = TestClient(app, client=("127.0.0.1", 50000))
 
     # Book 1: 2 chapters (ch1 with head/h1/inline/br, ch2 with basic paragraphs)
     ch1_xhtml = """<?xml version="1.0" encoding="UTF-8"?>

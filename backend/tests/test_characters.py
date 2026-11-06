@@ -75,7 +75,7 @@ def create_minimal_test_epub() -> bytes:
 @pytest.fixture
 def client(tmp_path):
     app = create_app(data_dir=tmp_path)
-    return TestClient(app)
+    return TestClient(app, client=("127.0.0.1", 50000))
 
 
 def test_character_db_crud_and_validation(tmp_path):
