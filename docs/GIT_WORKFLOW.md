@@ -16,3 +16,7 @@ Giữ commit README ban đầu trên `main`. Bản nguồn hiện tại được
 Frontend đã qua 24 test và production build trên máy. Backend full suite chưa được xác nhận ở lượt chuẩn bị này; Docker runtime, staging và backup/restore chưa được nghiệm thu. Các kiểm tra trên dữ liệu thật không được tự chạy chỉ để hoàn thành CI.
 
 CI hiện chạy cho push lên `main`/`develop` và pull request. Branch protection và required checks phải được cấu hình trên GitHub riêng; tài liệu này không khẳng định chúng đã bật.
+
+## Bản dùng thử local ngày 07/11/2026
+
+Các sửa auth, lịch sử/revision, glossary, quyền và xử lý xung đột nằm ở `fix/release-readiness`. Kiểm tra local đạt 373 backend test (6 skip), 43 frontend test, build và QA desktop/mobile với API giả. Xem `MILESTONES.md` để biết phạm vi nghiệm thu và phần cloud còn thiếu. Chưa xác minh CI từ tài khoản GitHub được kết nối; push lên nhánh fix không tự chứng minh CI đã chạy, vì workflow hiện lọc push vào `main`/`develop`. Mở PR vào `develop` để chạy kiểm tra theo luồng review.

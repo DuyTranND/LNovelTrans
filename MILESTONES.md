@@ -1,5 +1,16 @@
 # Implementation progress
 
+## Local review build — 07/11/2026
+
+- Work branch: `fix/release-readiness`; `main` and `develop` remain unchanged pending review.
+- Backend independently verified in a source-only copy without `.env`, with fresh `DATA_DIR`/pytest basetemp: **373 passed, 6 skipped**. Includes production account validation, session revocation/demotion, real two-connection SQLite races, duplicate-ID atomicity, actor-attributed manual edit history and CAS restore. Background translation/review and correction apply/rollback now advance revision on changes so stale editor drafts cannot overwrite their results.
+- Frontend: **43 passed**, production build succeeds. Restored glossary navigation/CRUD, role capabilities across screens, structured API errors, explicit per-segment conflict choices preserving drafts, and admin history/confirmed restore. Mocked Playwright checks pass login/logout failures, viewer restrictions, second-save revision, restore conflict/success/local override, desktop tab scrolling and mobile drawer/no overflow. Browser plugin was absent; headless Playwright used, all API routes intercepted.
+- Live loopback web: `/`, `/api/health`, `/api/books` and chapter history return HTTP 200. Preserved 1 book, 157 chapters and 46,637 translated segments; read-only comparison against pre-change backup found **0 source/original_source/translation differences**. Jobs remain 2 completed and 2 failed; no new translation jobs or live Gemini translation requests were made.
+- Saved-content export smoke: EPUB ZIP valid with 161 resources; first translated chapter PDF valid with 12 pages. Output is local and excluded from Git.
+- Consistent SQLite backup and referenced EPUB copy stored under `output/backups/release-20261106`, verified with integrity check, row counts, reopened copy and EPUB hashes. This is a local backup, not an offsite backup or cloud cutover.
+- Vercel research and setup steps are in `docs/HOSTING_PIPELINE.md`: frontend can use Vercel while the current SQLite/files/background worker require a persistent backend service. No Vercel project/domain or cloud data migration was created.
+- Still external to local acceptance: Docker runtime/image verification, cloud staging, offsite backup, production cutover, GitHub branch protection and remote CI verification. Do not describe the local review build as a completed public deployment.
+
 - [x] 1. Safe EPUB parser/rebuilder + regression tests
 - [x] 2. SQLite schema, repository, upload/preview/editor API
 - [x] 3. Gemini provider, context, story bible, glossary, review

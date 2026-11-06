@@ -1,5 +1,28 @@
 # Pipeline triển khai Trạm Dịch cho nhóm cộng tác
 
+## Cập nhật Vercel — 06/11/2026
+
+Vercel hỗ trợ FastAPI, nhưng không phải môi trường thay thế trực tiếp cho container hiện tại: SQLite ghi cần filesystem bền vững, EPUB/PDF cần lưu trữ, còn JobWorker/AuditManager/DiscoveryManager chạy công việc ngoài vòng đời một request. Không deploy nguyên backend hiện tại lên Vercel rồi dùng `/tmp` để giữ database.
+
+Phương án giữ kiến trúc hiện có: **React/Vite trên Vercel + FastAPI và một worker trên dịch vụ container có persistent volume**. Railway là một lựa chọn đã được lập kế hoạch trong tài liệu này. Backend giữ SQLite, EPUB, font, Gemini secrets và xử lý job; frontend chỉ nhận trạng thái bằng các API hiện có.
+
+Thiết lập Vercel sau khi có backend HTTPS thực:
+
+1. Import private repo `DuyTranND/LNovelTrans`; cấp quyền cho đúng repo. Root Directory `frontend`, framework Vite, build `pnpm build`, output `dist`, dùng Node phù hợp với pnpm trong lockfile (CI hiện chọn Node 22).
+2. Chọn nhánh có mã ứng dụng. `main` hiện chỉ là commit khởi tạo, bản nguồn ở `develop`; không coi deploy từ `main` hiện tại là deploy ứng dụng. Dùng preview của nhánh thay đổi để kiểm thử, chỉ chọn production branch sau khi merge bản đã nghiệm thu.
+3. Ứng dụng đang gọi `/api` cùng origin và dùng cookie/CSRF. Cấu hình external rewrite `/api/:path*` tới HTTPS backend thực, trước SPA fallback. Chỉ thêm cấu hình sau khi có hostname đích; không commit hostname giả hoặc biến môi trường không được Vercel nội suy.
+4. Backend production: `APP_ENV=production`, secret đủ mạnh, tài khoản với password hash, cookie Secure, tắt hoàn toàn local override, một replica/worker và volume `/app/data`. Gemini keys chỉ thuộc backend; không dùng biến `VITE_*` cho secrets.
+5. Qua URL Vercel, kiểm thử login, reload giữ session, logout, CSRF, các vai trò, upload, đọc chương, lưu/409, EPUB/PDF và polling job. Preview cần nguồn dữ liệu demo riêng; không trỏ mọi preview vào DB sản xuất có quyền ghi.
+6. Không cache API phiên đăng nhập, nội dung sách hoặc phản hồi cá nhân. Kiểm tra cookie và headers thực qua proxy; không giả định đăng nhập sẽ hoạt động chỉ vì trang chủ mở được.
+
+Giới hạn cần nghiệm thu: external rewrite có timeout proxy (tài liệu hiện nêu 120 giây), nên tác vụ AI dài vẫn phải trả job ID nhanh rồi polling. Xuất PDF toàn sách có thể vượt thời gian proxy; khi đó cần export job + download artifact hoặc thiết kế đường tải trực tiếp có xác thực. Giới hạn payload của Vercel Functions không được mặc định áp dụng như bằng chứng cho mọi external rewrite; upload/download lớn phải kiểm thử trên đúng tuyến triển khai.
+
+Muốn host toàn bộ trên Vercel cần một dự án thay đổi kiến trúc riêng: database bên ngoài (ví dụ Postgres hoặc dịch vụ SQLite từ xa được hỗ trợ), object storage cho EPUB/PDF, job queue/workflow bền vững và worker tương ứng, thay toàn bộ giả định đường dẫn/SQLite cục bộ, rồi migration và nghiệm thu. Không cần làm việc đó để có frontend `.vercel.app`.
+
+Chưa tạo Vercel project, chưa cấp domain, chưa chuyển dữ liệu hoặc đưa secrets lên host. Cần tài khoản Vercel và backend đích thực để thực hiện các bước trên.
+
+Nguồn chính thức đã đối chiếu: [FastAPI](https://vercel.com/docs/frameworks/backend/fastapi), [SQLite](https://vercel.com/kb/guide/is-sqlite-supported-in-vercel), [external rewrites](https://vercel.com/docs/routing/rewrites), [proxy limits](https://vercel.com/docs/limits), [Function limits](https://vercel.com/docs/functions/limitations).
+
 > Bản kế hoạch ngày 25/10/2026. Trạng thái: **chưa triển khai công khai**. Mục tiêu: một URL HTTPS, nhiều người đăng nhập và cùng hiệu đính trên một dữ liệu bền vững, máy Windows có thể tắt.
 
 ## 1. Quyết định kiến trúc

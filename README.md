@@ -42,7 +42,11 @@ Các test dùng provider giả, không tiêu tốn quota Gemini. Kiểm thử AP
 
 Muốn thử lại Gemini thật với tối đa ba đoạn đầu: `.venv\Scripts\python scripts/live_smoke.py --model gemini-3.5-flash-lite` (hoặc thêm `--review` để chạy tiếp một lượt thẩm định trên cùng các đoạn đó). Kết quả thành công được lưu vào `data/live-smoke.json`; script không thay đổi bản dịch trong database.
 
-Trạng thái kiểm tra trên máy này: giao diện, backend và EPUB roundtrip đã chạy; live translation smoke với model `gemini-3.5-flash-lite` trên 3 đoạn đầu đã thành công thực tế (3.59 giây); kiểm thử live review bằng script đã sẵn sàng và chờ supervisor chạy xác nhận; Docker chưa được cài. Không cần key Gemini để mở sách, biên tập thủ công hoặc xuất EPUB.
+Trạng thái kiểm tra và sẵn sàng cục bộ:
+- Luồng Gemini từng được kiểm chứng ở các lượt trước; lượt nghiệm thu ngày 07/11/2026 dùng provider giả, không chạy lại dịch sách. Docker runtime và triển khai cloud chưa được kiểm chứng. Không cần key Gemini để mở sách, biên tập thủ công hoặc xuất EPUB.
+- **Backend suite**: Đạt 373 passed, 6 skipped trên bản sao mã không có `.env`, với `DATA_DIR` và thư mục pytest riêng. Không chạy test trên database thật: import ứng dụng có khởi tạo schema. Bốn test snapshot sách/báo cáo lịch sử cần bật `COMIC_RUN_PRIVATE_BOOK_TESTS=1`; các test dữ liệu riêng còn lại tự bỏ qua khi thiếu fixture. Chúng không phải yêu cầu CI.
+- **Frontend**: 43 test đạt, `pnpm build` thành công; QA Playwright dùng API giả kiểm tra desktop/mobile, quyền, lỗi đăng nhập/đăng xuất, giữ nháp khi 409 và lịch sử phục hồi. Chạy `pnpm test`, `pnpm build` trong `frontend/`; smoke UI: `node frontend/e2e/release-smoke.cjs` từ root. Có thể đặt `PLAYWRIGHT_CORE_PATH` và `QA_OUTPUT_DIR` theo máy chạy.
+- **Kế hoạch triển khai Vercel**: Xem chi tiết kiến trúc và lộ trình tại phần Vercel trong `docs/HOSTING_PIPELINE.md`.
 
 ## Sử dụng
 
@@ -75,4 +79,3 @@ Gemini có thể trả lỗi quá tải hoặc quota. Ứng dụng phải lưu l
 - **Khởi động lại máy chủ**: Cần khởi động lại server backend sau khi thêm hoặc cập nhật biến môi trường trong `.env` để cấu hình mới có hiệu lực.
 
 Spec: `SPEC.md`; kiến trúc API: `docs/API.md`; tiến độ triển khai: `MILESTONES.md`; thiết kế: `docs/DESIGN.md`.
-
